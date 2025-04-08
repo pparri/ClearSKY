@@ -1,0 +1,14 @@
+#iniciar el servidor django
+ python3 manage.py runserver
+
+
+ curl -X POST http://127.0.0.1:8000/api/grades/register/ \
+-H "Content-Type: application/json" \
+-d '{
+  "username": "testuser",
+  "email": "testuser@example.com",
+  "password": "securepassword",
+  "role": "STUDENT"
+}'
+
+
