@@ -1,11 +1,10 @@
-from pydantic import BaseModel
+from sqlalchemy import Column, Integer, String
+from db.database import Base
 
-# Define a Pydantic model for validation
-class InstitutionBase(BaseModel):
-    name: str
-    address: str
-    representative_email: str
+class Institution(Base):
+    __tablename__ = "institutions"
 
-# Model for output response
-class InstitutionInDB(InstitutionBase):
-    id: str
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    address = Column(String)
+    representative_email = Column(String, unique=True, index=True)
