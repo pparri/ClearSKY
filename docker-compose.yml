@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  #Frontend
+  # Frontend
   frontend:
     build: ./frontend
     ports:
@@ -15,7 +15,7 @@ services:
     depends_on:
       - backend
 
-  #Backend
+  # Backend
   backend:
     build: ./backend
     ports:
@@ -29,7 +29,7 @@ services:
     depends_on:
       - postgres
 
-  #Database
+  # Database (PostgreSQL)
   postgres:
     image: postgres:13-alpine
     volumes:
@@ -42,4 +42,4 @@ services:
       - "5432:5432"
 
 volumes:
-    postgres_data:
+  postgres_data:
