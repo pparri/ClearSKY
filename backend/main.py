@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from db.database import SessionLocal, engine
-from models.institution import Institution  # Asigură-te că folosești modelul corect (Institution sau InstitutionBase)
+from models.institution import Institution
 
 app = FastAPI()
 
