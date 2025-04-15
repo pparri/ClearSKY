@@ -33,15 +33,9 @@ user: clearsky
 pw: securepassword
 port: 5432
 
-
-
-psql -h <host> -p 5432 -U clearsky -d clearsky
 ----------
 #prueba para registrar usuario
 
-
-
----------------
 
 #iniciar el servidor django
  python3 manage.py runserver
@@ -58,6 +52,8 @@ psql -h <host> -p 5432 -U clearsky -d clearsky
   "password": "secure123",
   "role": "student"
 }'
+
+
 
 ---------------
 
@@ -80,3 +76,85 @@ respuesta login:
 curl -X GET http://localhost:8000/api/users/me/ \
 -H "Authorization: Token 1ff2aa7a8519298d1372a2797791757aca9b363b"
 
+------
+INSTITUTIONS
+crear un perfil representative:
+
+ curl -X POST http://localhost:8000/api/users/register/ \
+-H "Content-Type: application/json" \
+-d '{
+  "username": "axel98",
+  "email": "axel@uni.edu",
+  "name": "Axel Gonzalez",
+  "password": "secure123",
+  "role": "representative"
+}'
+
+
+crear una institucion:
+
+curl -X POST http://localhost:8000/api/institutions/ \
+     -H "Content-Type: application/json" \
+     -d '{
+           "name": "Universitat Politècnica de Catalunya",
+           "email": "contacto@upc.edu",
+           "representative": 2
+         }'
+
+resp: 
+
+{"detail":"Authentication credentials were not provided."}
+
+The curl is protected with the token, so we need to login and add the token to the curl:
+
+
+curl -X POST http://localhost:8000/api/users/login/ \
+-H "Content-Type: application/json" \
+-d '{
+  "username": "axel98",
+  "password": "secure123"
+}'
+
+token: 
+b1b1961933a4404a6ff7ee6f247fbbaeed5b0f09
+
+def curl:
+
+curl -X POST http://localhost:8000/api/institutions/create/ \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Token b1b1961933a4404a6ff7ee6f247fbbaeed5b0f09" \
+     -d '{
+           "name": "Universitat Politècnica de Catalunya",
+           "email": "contacto@upc.edu",
+           "representative": 2
+         }'
+
+
+for list: 
+
+curl -X GET http://localhost:8000/api/institutions/ \
+  -H "Authorization: Token  b1b1961933a4404a6ff7ee6f247fbbaeed5b0f09"
+
+#We try to create an institution with an user that has not the role of  representative (maria)
+token:
+1ff2aa7a8519298d1372a2797791757aca9b363b
+
+curl -X POST http://localhost:8000/api/institutions/create/ \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Token 1ff2aa7a8519298d1372a2797791757aca9b363b" \
+     -d '{
+           "name": "Universitat Politècnica de Catalunya",
+           "email": "contacto@upc.edu",
+           "representative": 1
+         }'
+
+answer: {"detail":"You do not have permission to perform this action."}
+
+#We try to do the same but for list:
+We can list it, should be something for only representative??
+
+curl -X GET http://localhost:8000/api/institutions/ \
+  -H "Authorization: Token 1ff2aa7a8519298d1372a2797791757aca9b363b"
+
+
+-------------------------
