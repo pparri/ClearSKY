@@ -237,3 +237,16 @@ curl -X POST http://localhost:8000/api/institutions/create/ \
   -H "Content-Type: application/json" \
   -H "Authorization: Token f868c6e899d31104093ddda73dcd685fc8228644" \
   -d '{"action": "remove", "user_ids": [1]}'
+
+
+  ---------------
+  Solo puedes registrar usuarios si eres un representative (cambiar)
+
+
+  students:
+
+  go to my courses:
+
+  * ver cursos, exam period, grade status y acciones como:
+  *** view grades, ask for review ( si esta abierto el status), view review status (si has pedido antes)
+  *** view grades --> ver el total y 
