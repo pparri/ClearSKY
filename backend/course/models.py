@@ -1,9 +1,19 @@
+# course/models.py
 from django.db import models
+from django.contrib.auth import get_user_model
+from institutions.models import Institution  # o la ruta real donde tengas tu clase Institution
 
-# Create your models here.
+User = get_user_model()
+
 class Course(models.Model):
-    title = models.CharField(max_length=100)
-    code = models.CharField(max_length=20, unique=True)
-    
+    course_id = models.CharField(max_length=100, unique=True)
+    title = models.CharField(max_length=255)
+    email = models.EmailField()
+    password = models.CharField(max_length=128)
+
+    institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name="courses")
+    instructors = models.ManyToManyField(User, related_name="courses")
+
     def __str__(self):
-        return self.title
+        return f"{self.title} ({self.course_id})"
+
