@@ -17,3 +17,18 @@ class Course(models.Model):
     def __str__(self):
         return f"{self.title} ({self.course_id})"
 
+
+from django.db import models
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class ReviewRequest(models.Model):
+    #grade = models.ForeignKey('GradeAssignment', on_delete=models.CASCADE, related_name='review_requests')
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='review_requests')
+    reason = models.TextField()
+    status = models.CharField(max_length=10, choices=[('PENDING', 'PENDING'), ('ACCEPTED', 'ACCEPTED'), ('REJECTED', 'REJECTED')], default='PENDING')
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.student.username} → {self.grade} ({self.status})"
