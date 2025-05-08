@@ -1,24 +1,19 @@
+# course/models.py
 from django.db import models
-from enum import Enum
-from typing import List, Optional
-from pydantic import BaseModel
+from django.contrib.auth import get_user_model
+from institutions.models import Institution  # o la ruta real donde tengas tu clase Institution
 
-class GradeState(str, Enum):
-    VOID = "VOID"
-    OPEN = "OPEN"
-    FINAL = "FINAL"
-
-class Grade(models.Model):
-    student_id: str
-    value: float
-    review_requested: bool = False
-    review_response: Optional[str] = None
+User = get_user_model()
 
 class Course(models.Model):
-    id: str
-    name: str
-    instructor_id: str
-    institution_id: str
-    grade_state: GradeState = GradeState.VOID
-    initial_grades: List[Grade] = []
-    final_grades: List[Grade] = []
+    course_id = models.CharField(max_length=100, unique=True)
+    title = models.CharField(max_length=255)
+    email = models.EmailField()
+    password = models.CharField(max_length=128)
+
+    institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name="courses")
+    instructors = models.ManyToManyField(User, related_name="courses")
+
+    def __str__(self):
+        return f"{self.title} ({self.course_id})"
+
