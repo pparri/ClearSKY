@@ -61,3 +61,40 @@ def delete_course(request, course_id):
         return Response({'message': 'Course deleted successfully'}, status=204)
     except Course.DoesNotExist:
         return Response({'error': 'Course not found'}, status=404)
+
+@api_view(['POST'])
+def create_review_request(request, course_id):
+    serializer = ReviewRequestSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=201)
+    return Response(serializer.errors, status=400)
+
+@api_view(['GET'])
+def list_review_requests(request, course_id):
+    reviews = ReviewRequest.objects.filter(grade__course__course_id=course_id)
+    serializer = ReviewRequestSerializer(reviews, many=True)
+    return Response(serializer.data, status=200)
+
+@api_view(['PUT'])
+def update_review_request(request, course_id, review_id):
+    try:
+        review = ReviewRequest.objects.get(id=review_id, grade__course__course_id=course_id)
+    except ReviewRequest.DoesNotExist:
+        return Response({'error': 'ReviewRequest not found'}, status=404)
+
+    serializer = ReviewRequestSerializer(review, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=400)
+
+@api_view(['DELETE'])
+def delete_review_request(request, course_id, review_id):
+    try:
+        review = ReviewRequest.objects.get(id=review_id, grade__course__course_id=course_id)
+    except ReviewRequest.DoesNotExist:
+        return Response({'error': 'ReviewRequest not found'}, status=404)
+
+    review.delete()
+    return Response({'message': 'ReviewRequest deleted'}, status=204)
