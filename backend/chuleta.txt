@@ -368,3 +368,21 @@ curl -X GET http://localhost:8000/api/grades/courses/COURSE_ID/semester/SEMESTER
 
 curl -X GET http://localhost:8000/api/grades/courses/1/semester/2024-2025/statistics/ \
   -H "Authorization: Token 03c8817e63a21296163af3722f63adc01ed40d77"
+
+
+
+# probamos el enpoint de que un estudiante obtenga su propia notas
+
+curl -X GET http://localhost:8000/api/grades/grades/ \
+  -H "Authorization: Token 9ba4a0fa9440e375c8ab1332f875b2b08144113b"
+
+
+curl -X POST http://localhost:8000/api/users/login/ \
+-H "Content-Type: application/json" \
+-d '{
+  "username": "griego1",
+  "password": "secure123"
+}'
+
+token:
+9ba4a0fa9440e375c8ab1332f875b2b08144113b

@@ -43,7 +43,7 @@ class GradeAssignmentListCreateView(APIView):
 class GradeAssignmentDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated] #para pder acceder a la vista, el usuario debe estar autenticado
 
-    def get_object(self, pk):
+    def get_object(self, pk, user):
         return get_object_or_404(GradeAssignment, pk=pk)
 
     def get(self, request, pk): # coge una instance de la calificación si existe, sino devuelve un error 404
@@ -57,7 +57,7 @@ class GradeAssignmentDetailView(APIView):
         if serializer.is_valid(): #si los datos son correctos se guardan
             serializer.save()
             return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+        return Response(serializer.errors, status=400) 
 
     def delete(self, request, pk):
         grade = self.get_object(pk)
