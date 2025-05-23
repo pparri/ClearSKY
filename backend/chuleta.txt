@@ -15,6 +15,16 @@ python3 manage.py migrate
 
 python3 manage.py runserver
 
+sudo -u postgres psql clearsky
+\dt
+
+DELETE FROM users_user WHERE username = 'nombre_del_usuario_a_eliminar';
+
+DELETE FROM users_user WHERE username = 'griego1';
+DELETE FROM grades_gradeassignment WHERE student_id = 7;
+DELETE FROM grades_questiongrade WHERE grade_assignment_id = 6;
+
+
 ----------
 #permitir conexiones externas:
 sudo nano /etc/postgresql/15/main/postgresql.conf
@@ -250,3 +260,111 @@ curl -X POST http://localhost:8000/api/institutions/create/ \
   * ver cursos, exam period, grade status y acciones como:
   *** view grades, ask for review ( si esta abierto el status), view review status (si has pedido antes)
   *** view grades --> ver el total y 
+
+
+  -----------------------------
+  Crear un instructor:
+
+   curl -X POST http://localhost:8000/api/users/register/ \
+-H "Content-Type: application/json" \
+-d '{
+  "username": "profe1",
+  "email": "profe1@uni.edu",
+  "name": "Profe",
+  "password": "password",
+  "role": "instructor"
+}'
+
+curl -X POST http://localhost:8000/api/users/login/ \
+-H "Content-Type: application/json" \
+-d '{
+  "username": "profe1",
+  "password": "password"
+}'
+
+03c8817e63a21296163af3722f63adc01ed40d77
+
+------
+Probar a crear un curso: 
+curl -X POST http://localhost:8000/api/courses/create/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Token 03c8817e63a21296163af3722f63adc01ed40d77" \
+  -d '{
+        "code": "3205",
+        "title": "ΒΑΘΜΟΛΟΓΙΟ ΤΕΧΝΟΛΟΓΙΑ ΛΟΓΙΣΜΙΚΟΥ",
+        "email": "curso@uni.edu",
+        "password": "password",
+        "institution": 1,
+        "instructors": [5]
+      }'
+
+      {"id":1,"code":"3205","title":"ΒΑΘΜΟΛΟΓΙΟ ΤΕΧΝΟΛΟΓΙΑ ΛΟΓΙΣΜΙΚΟΥ","email":"curso@uni.edu","institution":1,"instructors":[5]}
+      
+
+
+Probar a subir un excel:
+
+
+
+ curl -X POST http://localhost:8000/api/users/register/ \
+-H "Content-Type: application/json" \
+-d '{
+  "username": "griego1",
+  "email": "el84623@mail.ntua.gr",
+  "name": "ΚΑΡΑΓΙΑΝΝΗΣ ΕΛΕΝΗ",
+  "password": "secure123",
+  "role": "student"
+}'
+
+curl -X POST http://localhost:8000/api/users/register/ \
+  -H "Content-Type: application/json" \
+  -d '{
+        "username": "griego1",
+        "email": "el84623@mail.ntua.gr",
+        "name": "ΚΑΡΑΓΙΑΝΝΗΣ ΕΛΕΝΗ",
+        "password": "secure123",
+        "role": "student",
+        "registration_id": "03184623"
+      }'
+
+
+  curl -X POST http://localhost:8000/api/grades/upload-excel/ \
+  -H "Authorization: Token 03c8817e63a21296163af3722f63adc01ed40d77" \
+  -F "file=@/home/axel/Escritorio/UNI/8quatri/SaaS/project_root/excel/data1_basic.xlsx" \
+  -F "course_name=ΒΑΘΜΟΛΟΓΙΟ ΤΕΧΝΟΛΟΓΙΑ ΛΟΓΙΣΜΙΚΟΥ  " \
+  -F "semester=2024-2025" \
+  -F "num_grades=102"
+
+  
+  curl -X POST http://localhost:8000/api/grades/upload-excel/ \
+  -H "Authorization: Token 03c8817e63a21296163af3722f63adc01ed40d77" \
+  -F "file=@/home/axel/Escritorio/UNI/8quatri/SaaS/project_root/excel/data2_detailed.xlsx" \
+  -F "course_name=ΒΑΘΜΟΛΟΓΙΟ ΤΕΧΝΟΛΟΓΙΑ ΛΟΓΙΣΜΙΚΟΥ  " \
+  -F "semester=2024-2025" \
+  -F "num_grades=102"
+
+
+#se procesa bien, vamos a por los graficos, creamos a 4 griegos
+
+
+curl -X POST http://localhost:8000/api/users/register/ \
+  -H "Content-Type: application/json" \
+  -d '{
+        "username": "griego4",
+        "email": "el84621@mail.ntua.gr",
+        "name": "ΒΑΣΙΛΕΙΟΥ ΣΟΦΙΑ",
+        "password": "secure123",
+        "role": "student",
+        "registration_id": "03184621"
+      }'
+
+
+#intentamos crear los plots con las notas
+
+
+curl -X GET http://localhost:8000/api/grades/courses/COURSE_ID/semester/SEMESTER_NAME/statistics/ \
+  -H "Authorization: Token 03c8817e63a21296163af3722f63adc01ed40d77"
+
+
+curl -X GET http://localhost:8000/api/grades/courses/1/semester/2024-2025/statistics/ \
+  -H "Authorization: Token 03c8817e63a21296163af3722f63adc01ed40d77"
