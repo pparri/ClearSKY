@@ -4,10 +4,10 @@ from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.parsers import MultiPartParser
 from django.shortcuts import get_object_or_404
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError as DjangoValidationError
 from django.utils import timezone
 from .models import GradeAssignment, ReviewRequest, QuestionGrade, Course
-from .serializers import GradeAssignmentSerializer, ReviewRequestSerializer
+from .serializers import GradeAssignmentSerializer, ReviewRequestSerializer, validate_semester_format
 import pandas as pd
 from django.contrib.auth import get_user_model
 from collections import Counter
@@ -26,7 +26,13 @@ class GradeAssignmentListCreateView(APIView):
         if user.role == 'instructor':  # asumimos instructor
             grades = GradeAssignment.objects.filter(instructor=user)
         else:
-            grades = GradeAssignment.objects.filter(student=user)
+            # Optimizar la consulta para el estudiante --> optimiza las busquedas en la base de datos para no hacer mas accesos
+            grades = GradeAssignment.objects.filter(
+                student=user
+            ).select_related('course', 'instructor').prefetch_related('question_grades')
+            # Puedes añadir un order_by si quieres, ej. por semestre o nombre del curso
+            # .order_by('-semester', 'course__title') 
+        
         serializer = GradeAssignmentSerializer(grades, many=True)
         return Response(serializer.data)
     
@@ -63,42 +69,97 @@ class GradeAssignmentDetailView(APIView):
         grade = self.get_object(pk)
         grade.delete()
         return Response(status=204)
+    
+ 
+#update state of a grade
+class UpdateGradeStateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
-# Finalizar nota
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
-def finalize_grade(request, pk):
-    grade = get_object_or_404(GradeAssignment, pk=pk)
-    if grade.instructor != request.user:
-        return Response({'error': 'No autorizado'}, status=403)
-    if grade.state != GradeAssignment.GradeState.OPEN:
-        return Response({'error': 'No se puede finalizar'}, status=400)
-    grade.state = GradeAssignment.GradeState.FINAL
-    grade.save()
-    return Response({'status': 'Nota finalizada'})
+    def put(self, request, pk, format=None):
+        grade = get_object_or_404(GradeAssignment, pk=pk)
+        new_state = request.data.get('state')
+
+        # 1. Verificar que el usuario sea un instructor y esté autorizado
+        if not request.user.is_authenticated or request.user.role != 'instructor':
+            return Response(
+                {'error': 'Acceso denegado. Solo los instructores pueden modificar el estado de las notas.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+    
+        # 2. Validar el nuevo estado proporcionado
+        valid_states = [choice[0] for choice in GradeAssignment.GradeState.choices]
+        if not new_state:
+            return Response(
+                {'error': 'Debe proporcionar el campo "state" en el cuerpo de la solicitud (ej: {"state": "OPEN"}).'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if new_state not in valid_states:
+            return Response(
+                {'error': f"Estado '{new_state}' inválido. Los estados válidos son: {', '.join(valid_states)}."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 3. (Opcional) Lógica de transición de estados
+        current_state = grade.state
+        if current_state == new_state:
+            return Response(
+                {'message': f'La nota ya está en estado {grade.get_state_display()}. No se realizaron cambios.'},
+                status=status.HTTP_200_OK # O 304 Not Modified, aunque 200 con mensaje es común.
+            )
+
+        # 4. Actualizar y guardar el estado
+        grade.state = new_state
+        grade.save()
+
+        return Response(
+            {'status': f'Estado de la nota {grade.id} actualizado a {grade.get_state_display()}.'},
+            status=status.HTTP_200_OK
+        )
+
+
+
+    
 #------------------------------------------------------REVIEWS---------------------------------------------------
 # Solicitar revisión
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
-def request_review(request, pk):
-    grade = get_object_or_404(GradeAssignment, pk=pk)
-    if grade.student != request.user:
-        return Response({'error': 'No autorizado'}, status=403)
-    if grade.state != GradeAssignment.GradeState.OPEN:
-        return Response({'error': 'Nota no está abierta'}, status=400)
-    review = ReviewRequest.objects.create(
-        grade_assignment=grade,
-        reason=request.data.get('reason')
-    )
-    serializer = ReviewRequestSerializer(review)
-    return Response(serializer.data, status=201)
+class RequestReviewView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request, pk, format=None):
+        grade = get_object_or_404(GradeAssignment, pk=pk)
+        # 2. Verificar que el solicitante es el estudiante de la nota
+        if grade.student != request.user:
+            return Response({'error': 'No autorizado'}, status=403)
+        # 3. Verificar que la nota está abierta
+        if grade.state != GradeAssignment.GradeState.OPEN:
+            return Response({'error': 'Nota no está abierta'}, status=400)
+        #obtener el motivo de la solicitud de revisión
+        review = ReviewRequest.objects.create(
+            grade_assignment=grade,
+            reason=request.data.get('reason')
+        )
+        serializer = ReviewRequestSerializer(review)
+        return Response(serializer.data, status=201)
 
-# Listar solicitudes de revisión
+# Listar solicitudes de revisión para el instructor autenticado
 class ReviewRequestListView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        reviews = ReviewRequest.objects.filter(grade_assignment__instructor=request.user)
+        user = request.user
+        if user.role != 'instructor':
+            return Response({'error': 'Acceso denegado. Solo para instructores.'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Filtrar ReviewRequests donde el instructor de la GradeAssignment asociada es el usuario actual.
+        # Usar select_related y prefetch_related para optimizar las consultas a la base de datos
+        # y evitar el problema N+1 al acceder a los campos anidados.
+        reviews = ReviewRequest.objects.filter(
+            grade_assignment__instructor=user
+        ).select_related( # Para campos ForeignKey directos en ReviewRequest y GradeAssignment
+            'grade_assignment__student', 
+            'grade_assignment__course',
+            'responded_by' # Si 'responded_by' es un ForeignKey a User
+        ).order_by('-submitted_at') # Opcional: ordenar por más recientes primero
+
         serializer = ReviewRequestSerializer(reviews, many=True)
         return Response(serializer.data)
 
@@ -112,25 +173,67 @@ class ReviewRequestDetailView(APIView):
         return Response(serializer.data)
 
 # Responder solicitud
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
-def respond_to_review(request, pk):
-    review = get_object_or_404(ReviewRequest, pk=pk)
-    grade = review.grade_assignment
-    if grade.instructor != request.user:
-        return Response({'error': 'No autorizado'}, status=403)
+class RespondToReviewView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
-    review.response = request.data.get('response')
-    review.responded_by = request.user
-    review.responded_at = timezone.now()
-    review.save()
+    def post(self, request, pk, format=None):
+        review = get_object_or_404(ReviewRequest, pk=pk)
+        grade_assignment = review.grade_assignment
 
-    if 'new_grade' in request.data:
-        grade.grade_value = request.data['new_grade']
-        grade.save()
+        # 1. Verificar que el usuario sea un instructor
+        if request.user.role != 'instructor':
+            return Response(
+                {'error': 'Acceso denegado. Solo los instructores pueden responder a las revisiones.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
-    return Response({'status': 'Revisión respondida'})
+        # 2. Verificar que la revisión no haya sido respondida ya
+        if review.response is not None:
+            return Response(
+                {'error': 'Esta solicitud de revisión ya ha sido respondida.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
+        # 3. Obtener y validar los datos de la respuesta
+        response_text = request.data.get('response')
+        new_grade_value_str = request.data.get('new_grade')
+
+        if not response_text or not isinstance(response_text, str) or not response_text.strip():
+            return Response(
+                {'error': 'Se requiere un texto de respuesta válido.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 4. Actualizar la ReviewRequest
+        review.response = response_text.strip()
+        review.responded_by = request.user
+        review.responded_at = timezone.now() # Asegúrate de que timezone esté importado de django.utils
+        
+
+        # 5. Actualizar la nota si se proporciona una nueva y es válida
+        if new_grade_value_str is not None:
+            try:
+                new_grade_value = float(new_grade_value_str)
+                if not (0 <= new_grade_value <= 10):
+                    return Response(
+                        {'error': f'El valor de la nueva nota ({new_grade_value_str}) está fuera del rango permitido (0-10).'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                grade_assignment.grade_value = new_grade_value
+                # Opcional: Cambiar el estado de la GradeAssignment aquí si es necesario
+                grade_assignment.state = GradeAssignment.GradeState.FINAL 
+                grade_assignment.save()
+            except ValueError:
+                return Response(
+                    {'error': f'El valor de la nueva nota "{new_grade_value_str}" no es un número válido.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        review.save() # Guardar la review después de procesar la posible nueva nota
+
+        # 6. Serializar y devolver la ReviewRequest actualizada
+        serializer = ReviewRequestSerializer(review)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 #----------------------------------------------------------------------------------------------------------------------
 
 #EXCEL UPLOAD
@@ -154,6 +257,10 @@ class GradeExcelUploadView(APIView):
             course = Course.objects.get(title=course_name)  #buscamos el curso por su nombre
         except Course.DoesNotExist:
             return Response({'error': 'El curso no existe.'}, status=400)
+        try:
+            validated_semester = validate_semester_format(semester)
+        except DjangoValidationError as e: # O serializers.ValidationError
+            return Response({'error': e.messages if hasattr(e, 'messages') else str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             df = pd.read_excel(excel_file, header = 2, dtype={'Αριθμός Μητρώου': str}) #empieza a leer el archivo a partir de la tercera fila (dnd estan las columnas)

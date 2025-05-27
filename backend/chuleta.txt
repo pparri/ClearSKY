@@ -340,7 +340,7 @@ curl -X POST http://localhost:8000/api/users/register/ \
   -H "Authorization: Token 03c8817e63a21296163af3722f63adc01ed40d77" \
   -F "file=@/home/axel/Escritorio/UNI/8quatri/SaaS/project_root/excel/data2_detailed.xlsx" \
   -F "course_name=ΒΑΘΜΟΛΟΓΙΟ ΤΕΧΝΟΛΟΓΙΑ ΛΟΓΙΣΜΙΚΟΥ  " \
-  -F "semester=2024-2025" \
+  -F "semester=Spring 2024-2025" \
   -F "num_grades=102"
 
 
@@ -366,7 +366,9 @@ curl -X GET http://localhost:8000/api/grades/courses/COURSE_ID/semester/SEMESTER
   -H "Authorization: Token 03c8817e63a21296163af3722f63adc01ed40d77"
 
 
-curl -X GET http://localhost:8000/api/grades/courses/1/semester/2024-2025/statistics/ \
+#el espacio es %20
+
+  curl -X GET http://localhost:8000/api/grades/courses/1/semester/statistics/Spring%202024-2025/ \
   -H "Authorization: Token 03c8817e63a21296163af3722f63adc01ed40d77"
 
 
@@ -386,3 +388,39 @@ curl -X POST http://localhost:8000/api/users/login/ \
 
 token:
 9ba4a0fa9440e375c8ab1332f875b2b08144113b
+
+
+#dejar una nota como aboerta
+
+curl -X PUT http://localhost:8000/api/grades/grades/22/update-state/ \
+  -H "Authorization: Token 03c8817e63a21296163af3722f63adc01ed40d77" \
+  -H "Content-Type: application/json" \
+  -d '{"state": "OPEN"}'
+
+#probar a dejar una review (estudiante)
+curl -X POST http://localhost:8000/api/grades/grades/22/request-review/ \
+  -H "Authorization: Token 9ba4a0fa9440e375c8ab1332f875b2b08144113b" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "reason": "Creo que merezco una mejor calificación en la pregunta Q03 debido a mi explicación detallada."
+      }'
+
+#responder una review (profe):
+
+curl -X POST http://localhost:8000/api/grades/reviews/2/respond/ \
+  -H "Authorization: Token 03c8817e63a21296163af3722f63adc01ed40d77" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "response": "Hemos revisado tu solicitud. La calificación se mantiene ya que la explicación fue insuficiente para los puntos máximos."
+      }'
+
+#obtener info reviews (profe)
+
+curl -X GET http://localhost:8000/api/grades/reviews/ \
+  -H "Authorization: Token 03c8817e63a21296163af3722f63adc01ed40d77"
+
+
+#obtener info de las notas estudiante:
+
+curl -X GET http://localhost:8000/api/grades/grades/ \
+  -H "Authorization: Token 9ba4a0fa9440e375c8ab1332f875b2b08144113b"
