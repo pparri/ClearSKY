@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
 
 export interface Course {
-  id: string; // o number se il backend usa numeri
+  id: string;
   name: string;
   period: string;
   initialSubmission: string;
@@ -27,8 +27,8 @@ interface LoginResponse {
   providedIn: 'root'
 })
 export class ApiService {
-  private baseUrl = 'http://localhost:8000/api/users';
-  private coursesUrl = 'http://localhost:8000/api/courses';
+  private baseUrl = '/api/users';      // Usa il proxy
+  private coursesUrl = '/api/courses'; // Usa il proxy
   private tokenKey = 'auth_token';
 
   private _isLoggedIn$ = new BehaviorSubject<boolean>(this.hasToken());
