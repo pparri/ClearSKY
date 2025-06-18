@@ -23,30 +23,34 @@ export class LoginComponent {
     private router: Router
   ) {
     this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
+      username: ['', Validators.required], // Cambiato da email a username
       password: ['', Validators.required]
     });
   }
 
   onSubmit() {
     if (this.loginForm.valid) {
-      const { email, password } = this.loginForm.value;
+      const { username, password } = this.loginForm.value;
 
-      // Il backend Django di solito si aspetta 'username' o 'email' come campo.
-      // Qui usiamo 'email' come username, come fa già il tuo codice.
-      this.api.login({ username: email, password }).subscribe({
+      this.api.login({ username, password }).subscribe({
         next: (response) => {
+          // Log di debug per vedere la risposta
+          console.log('Login response:', response);
+
           // Salva il token se il backend lo restituisce
           if (response.token) {
             localStorage.setItem('auth_token', response.token);
+            // Aggiorna lo stato utente nell'AuthService
+            this.auth.login({
+              email: response.user.email,
+              role: response.user.role as 'student' | 'instructor' | 'representative',
+              name: response.user.name
+            });
+            this.router.navigate(['/']);
+            this.errorMessage = null;
+          } else {
+            this.errorMessage = 'Invalid credentials or server error';
           }
-          // Aggiorna lo stato utente nell'AuthService
-          this.auth.login({
-            email: response.user.email,
-            role: response.user.role as 'student' | 'instructor' | 'representative',
-            name: response.user.name
-          });
-          this.router.navigate(['/']);
         },
         error: (err) => {
           console.error(err);
