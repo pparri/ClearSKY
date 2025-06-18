@@ -1,0 +1,17 @@
+<!-- src/app/dashboard/instructor/instructor-dashboard.component.html -->
+<div class="instructor-dashboard">
+  <header>
+    <h1>Welcome, Instructor</h1>
+  </header>
+
+  <nav class="nav-buttons">
+    <a routerLink="./initial" routerLinkActive="active">Post Initial Grades</a>
+    <a routerLink="./review" routerLinkActive="active">Review Requests</a>
+    <a routerLink="./final" routerLinkActive="active">Post Final Grades</a>
+    <a routerLink="./statistics" routerLinkActive="active">View Grades Statistics</a>
+  </nav>
+
+  <main>
+    <router-outlet></router-outlet>
+  </main>
+</div>
