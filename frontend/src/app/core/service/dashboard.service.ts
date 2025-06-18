@@ -9,7 +9,7 @@ import { environment } from '../../../environments/environment';
   providedIn: 'root'
 })
 export class DashboardService {
-  private apiUrl = environment.apiUrl; // Usa environment.apiUrl
+  private apiUrl = '/api'; // <--- Forza l'uso del proxy
 
   constructor(private http: HttpClient) { }
 
