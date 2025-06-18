@@ -1,45 +1,197 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  #Frontend
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+      - user-service
+      - course-service
+      - institution-service
+      - grade-service
+      - grade-review-service
+      - post-final-grade-service
+      - exams-service
+      - course-grade-service
+
+  auth-service:
+    build: ./auth-service
+    environment:
+      - DB_HOST=auth-db
+      - DB_NAME=auth
+      - DB_USER=root
+      - DB_PASSWORD=root
+    depends_on:
+      - auth-db
+
+  auth-db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "auth"
+    volumes:
+      - auth_data:/var/lib/mysql
+
+  user-service:
+    build: ./user-service
+    environment:
+      - DB_HOST=user-db
+      - DB_NAME=users
+      - DB_USER=root
+      - DB_PASSWORD=root
+    depends_on:
+      - user-db
+
+  user-db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "users"
+    volumes:
+      - user_data:/var/lib/mysql
+
+  course-service:
+    build: ./course-service
+    environment:
+      - DB_HOST=course-db
+      - DB_NAME=courses
+      - DB_USER=root
+      - DB_PASSWORD=root
+    depends_on:
+      - course-db
+
+  course-db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "courses"
+    volumes:
+      - course_data:/var/lib/mysql
+
+  institution-service:
+    build: ./institution-service
+    environment:
+      - DB_HOST=institution-db
+      - DB_NAME=institutions
+      - DB_USER=root
+      - DB_PASSWORD=root
+    depends_on:
+      - institution-db
+
+  institution-db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "institutions"
+    volumes:
+      - institution_data:/var/lib/mysql
+
+  grade-service:
+    build: ./grade-service
+    environment:
+      - DB_HOST=grade-db
+      - DB_NAME=grades
+      - DB_USER=root
+      - DB_PASSWORD=root
+    depends_on:
+      - grade-db
+
+  grade-db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "grades"
+    volumes:
+      - grade_data:/var/lib/mysql
+
+  grade-review-service:
+    build: ./grade-review-service
+    environment:
+      - DB_HOST=grade-review-db
+      - DB_NAME=reviews
+      - DB_USER=root
+      - DB_PASSWORD=root
+    depends_on:
+      - grade-review-db
+
+  grade-review-db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "reviews"
+    volumes:
+      - review_data:/var/lib/mysql
+
+  post-final-grade-service:
+    build: ./post-final-grade-service
+    environment:
+      - DB_HOST=final-grade-db
+      - DB_NAME=finalgrades
+      - DB_USER=root
+      - DB_PASSWORD=root
+    depends_on:
+      - final-grade-db
+
+  final-grade-db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "finalgrades"
+    volumes:
+      - finalgrade_data:/var/lib/mysql
+
+  exams-service:
+    build: ./exams-service
+    environment:
+      - DB_HOST=exams-db
+      - DB_NAME=exams
+      - DB_USER=root
+      - DB_PASSWORD=root
+    depends_on:
+      - exams-db
+
+  exams-db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "exams"
+    volumes:
+      - exams_data:/var/lib/mysql
+
+  course-grade-service:
+    build: ./course-grade-service
+    environment:
+      - DB_HOST=course-grade-db
+      - DB_NAME=coursegrades
+      - DB_USER=root
+      - DB_PASSWORD=root
+    depends_on:
+      - course-grade-db
+
+  course-grade-db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "coursegrades"
+    volumes:
+      - coursegrade_data:/var/lib/mysql
+
   frontend:
     build: ./frontend
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - API_URL=http://backend:4000
-    volumes:
-      - ./frontend/nginx.conf:/etc/nginx/nginx.conf:ro  # Cargar nginx.conf desde frontend
-      - ./frontend/build:/usr/share/nginx/html  # Sirve los archivos estáticos
     depends_on:
-      - backend
-
-  #Backend
-  backend:
-    build: ./backend
-    ports:
-      - "4000:4000"
-    environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=clearsky
-      - DB_PASSWORD=securepassword
-      - DB_NAME=clearsky
-    depends_on:
-      - postgres
-
-  #Database
-  postgres:
-    image: postgres:13-alpine
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_USER=clearsky
-      - POSTGRES_PASSWORD=securepassword
-      - POSTGRES_DB=clearsky
-    ports:
-      - "5432:5432"
+      - api-gateway
 
 volumes:
-    postgres_data:
+  auth_data:
+  user_data:
+  course_data:
+  institution_data:
+  grade_data:
+  review_data:
+  finalgrade_data:
+  exams_data:
+  coursegrade_data:
