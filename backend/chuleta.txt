@@ -424,3 +424,23 @@ curl -X GET http://localhost:8000/api/grades/reviews/ \
 
 curl -X GET http://localhost:8000/api/grades/grades/ \
   -H "Authorization: Token 9ba4a0fa9440e375c8ab1332f875b2b08144113b"
+
+
+
+  http://192.168.1.105:8000/api/
+
+
+  # Comando para ejecutar desde Windows
+curl -X POST http://192.168.1.105:8000/api/users/login/ \
+-H "Content-Type: application/json" \
+-d '{
+  "username": "griego1",
+  "password": "secure123"
+}'
+
+
+172.20.10.2/28
+
+frontend
+
+ng serve --open

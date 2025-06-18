@@ -31,21 +31,21 @@ class GradeAssignmentSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['timestamp', 'instructor']  # instructor lo setea la vista
 
-        def validate_student(self, value):
-            if value.role != 'student':
-                raise serializers.ValidationError("El usuario seleccionado no es un estudiante.")
-            return value
-        
-        def validate_instructor(self, value):
-            if value and value.role != 'instructor':
-                raise serializers.ValidationError("El usuario seleccionado no es un instructor.")
-            return value
+    def validate_student(self, value):
+        if value.role != 'student':
+            raise serializers.ValidationError("El usuario seleccionado no es un estudiante.")
+        return value
+    
+    def validate_instructor(self, value):
+        if value and value.role != 'instructor':
+            raise serializers.ValidationError("El usuario seleccionado no es un instructor.")
+        return value
 
-        def validate_semester(self, value): # Este es el método del serializador
-            try:
-                return validate_semester_format(value) # Llama a la función standalone
-            except DjangoValidationError as e:
-                raise serializers.ValidationError(e.messages) # Convierte la excepción
+    def validate_semester(self, value): # Este es el método del serializador
+        try:
+            return validate_semester_format(value) # Llama a la función standalone
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(e.messages) # Convierte la excepción
 
 
 #serializers simples para user y course
