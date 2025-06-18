@@ -2,7 +2,6 @@
 
 from django.conf import settings
 from django.db import migrations, models
-import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
@@ -11,19 +10,17 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('institutions', '0001_initial'),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Course',
+            name='Institution',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('code', models.CharField(max_length=100, unique=True)),
-                ('title', models.CharField(max_length=255)),
+                ('name', models.CharField(max_length=255, unique=True)),
                 ('email', models.EmailField(max_length=254)),
-                ('institution', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='courses', to='institutions.institution')),
-                ('instructors', models.ManyToManyField(related_name='courses', to=settings.AUTH_USER_MODEL)),
+                ('is_active', models.BooleanField(default=True)),
+                ('representatives', models.ManyToManyField(limit_choices_to={'role': 'representative'}, related_name='institutions', to=settings.AUTH_USER_MODEL)),
             ],
         ),
     ]

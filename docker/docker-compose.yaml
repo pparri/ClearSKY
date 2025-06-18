@@ -1,189 +1,176 @@
-version: '3.9'
+version: '3.8'
 
 services:
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - api-gateway
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+
   api-gateway:
     build: ./api-gateway
     ports:
-      - "8080:8080"
+      - "8000:8000"
     depends_on:
       - auth-service
       - user-service
       - course-service
       - institution-service
       - grade-service
+      - exams-service
       - grade-review-service
       - post-final-grade-service
-      - exams-service
-      - course-grade-service
 
   auth-service:
     build: ./auth-service
+    ports:
+      - "8001:8001"
     environment:
-      - DB_HOST=auth-db
-      - DB_NAME=auth
-      - DB_USER=root
-      - DB_PASSWORD=root
+      - DATABASE_URL=postgresql://auth_user:auth_pass@auth-db:5432/auth_db
     depends_on:
       - auth-db
 
   auth-db:
-    image: mysql:8
+    image: postgres:15
     environment:
-      MYSQL_ROOT_PASSWORD: "root"
-      MYSQL_DATABASE: "auth"
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_pass
     volumes:
-      - auth_data:/var/lib/mysql
+      - auth_data:/var/lib/postgresql/data
 
   user-service:
     build: ./user-service
+    ports:
+      - "8002:8002"
     environment:
-      - DB_HOST=user-db
-      - DB_NAME=users
-      - DB_USER=root
-      - DB_PASSWORD=root
+      - DATABASE_URL=postgresql://user_user:user_pass@user-db:5432/user_db
     depends_on:
       - user-db
 
   user-db:
-    image: mysql:8
+    image: postgres:15
     environment:
-      MYSQL_ROOT_PASSWORD: "root"
-      MYSQL_DATABASE: "users"
+      POSTGRES_DB: user_db
+      POSTGRES_USER: user_user
+      POSTGRES_PASSWORD: user_pass
     volumes:
-      - user_data:/var/lib/mysql
+      - user_data:/var/lib/postgresql/data
 
   course-service:
     build: ./course-service
+    ports:
+      - "8003:8003"
     environment:
-      - DB_HOST=course-db
-      - DB_NAME=courses
-      - DB_USER=root
-      - DB_PASSWORD=root
+      - DATABASE_URL=postgresql://course_user:course_pass@course-db:5432/course_db
     depends_on:
       - course-db
 
   course-db:
-    image: mysql:8
+    image: postgres:15
     environment:
-      MYSQL_ROOT_PASSWORD: "root"
-      MYSQL_DATABASE: "courses"
+      POSTGRES_DB: course_db
+      POSTGRES_USER: course_user
+      POSTGRES_PASSWORD: course_pass
     volumes:
-      - course_data:/var/lib/mysql
+      - course_data:/var/lib/postgresql/data
 
   institution-service:
     build: ./institution-service
+    ports:
+      - "8004:8004"
     environment:
-      - DB_HOST=institution-db
-      - DB_NAME=institutions
-      - DB_USER=root
-      - DB_PASSWORD=root
+      - DATABASE_URL=postgresql://inst_user:inst_pass@institution-db:5432/institution_db
     depends_on:
       - institution-db
 
   institution-db:
-    image: mysql:8
+    image: postgres:15
     environment:
-      MYSQL_ROOT_PASSWORD: "root"
-      MYSQL_DATABASE: "institutions"
+      POSTGRES_DB: institution_db
+      POSTGRES_USER: inst_user
+      POSTGRES_PASSWORD: inst_pass
     volumes:
-      - institution_data:/var/lib/mysql
+      - institution_data:/var/lib/postgresql/data
 
   grade-service:
     build: ./grade-service
+    ports:
+      - "8005:8005"
     environment:
-      - DB_HOST=grade-db
-      - DB_NAME=grades
-      - DB_USER=root
-      - DB_PASSWORD=root
+      - DATABASE_URL=postgresql://grade_user:grade_pass@grade-db:5432/grade_db
     depends_on:
       - grade-db
 
   grade-db:
-    image: mysql:8
+    image: postgres:15
     environment:
-      MYSQL_ROOT_PASSWORD: "root"
-      MYSQL_DATABASE: "grades"
+      POSTGRES_DB: grade_db
+      POSTGRES_USER: grade_user
+      POSTGRES_PASSWORD: grade_pass
     volumes:
-      - grade_data:/var/lib/mysql
-
-  grade-review-service:
-    build: ./grade-review-service
-    environment:
-      - DB_HOST=grade-review-db
-      - DB_NAME=reviews
-      - DB_USER=root
-      - DB_PASSWORD=root
-    depends_on:
-      - grade-review-db
-
-  grade-review-db:
-    image: mysql:8
-    environment:
-      MYSQL_ROOT_PASSWORD: "root"
-      MYSQL_DATABASE: "reviews"
-    volumes:
-      - review_data:/var/lib/mysql
-
-  post-final-grade-service:
-    build: ./post-final-grade-service
-    environment:
-      - DB_HOST=final-grade-db
-      - DB_NAME=finalgrades
-      - DB_USER=root
-      - DB_PASSWORD=root
-    depends_on:
-      - final-grade-db
-
-  final-grade-db:
-    image: mysql:8
-    environment:
-      MYSQL_ROOT_PASSWORD: "root"
-      MYSQL_DATABASE: "finalgrades"
-    volumes:
-      - finalgrade_data:/var/lib/mysql
+      - grade_data:/var/lib/postgresql/data
 
   exams-service:
     build: ./exams-service
+    ports:
+      - "8006:8006"
     environment:
-      - DB_HOST=exams-db
-      - DB_NAME=exams
-      - DB_USER=root
-      - DB_PASSWORD=root
+      - DATABASE_URL=postgresql://exams_user:exams_pass@exams-db:5432/exams_db
     depends_on:
       - exams-db
 
   exams-db:
-    image: mysql:8
+    image: postgres:15
     environment:
-      MYSQL_ROOT_PASSWORD: "root"
-      MYSQL_DATABASE: "exams"
+      POSTGRES_DB: exams_db
+      POSTGRES_USER: exams_user
+      POSTGRES_PASSWORD: exams_pass
     volumes:
-      - exams_data:/var/lib/mysql
+      - exams_data:/var/lib/postgresql/data
 
-  course-grade-service:
-    build: ./course-grade-service
-    environment:
-      - DB_HOST=course-grade-db
-      - DB_NAME=coursegrades
-      - DB_USER=root
-      - DB_PASSWORD=root
-    depends_on:
-      - course-grade-db
-
-  course-grade-db:
-    image: mysql:8
-    environment:
-      MYSQL_ROOT_PASSWORD: "root"
-      MYSQL_DATABASE: "coursegrades"
-    volumes:
-      - coursegrade_data:/var/lib/mysql
-
-  frontend:
-    build: ./frontend
+  grade-review-service:
+    build: ./grade-review-service
     ports:
-      - "3000:3000"
+      - "8007:8007"
+    environment:
+      - DATABASE_URL=postgresql://review_user:review_pass@review-db:5432/review_db
     depends_on:
-      - api-gateway
+      - review-db
+
+  review-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: review_db
+      POSTGRES_USER: review_user
+      POSTGRES_PASSWORD: review_pass
+    volumes:
+      - review_data:/var/lib/postgresql/data
+
+  post-final-grade-service:
+    build: ./post-final-grade-service
+    ports:
+      - "8008:8008"
+    environment:
+      - DATABASE_URL=postgresql://final_user:final_pass@final-db:5432/final_db
+    depends_on:
+      - final-db
+
+  final-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: final_db
+      POSTGRES_USER: final_user
+      POSTGRES_PASSWORD: final_pass
+    volumes:
+      - final_data:/var/lib/postgresql/data
 
 volumes:
   auth_data:
@@ -191,7 +178,6 @@ volumes:
   course_data:
   institution_data:
   grade_data:
-  review_data:
-  finalgrade_data:
   exams_data:
-  coursegrade_data:
+  review_data:
+  final_data:

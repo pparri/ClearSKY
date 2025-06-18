@@ -1,13 +1,19 @@
-FROM python:3.10
+# Dockerfile
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+FROM python:3.11-slim
 
+# Crea el directorio de la app
 WORKDIR /app
-COPY requirements.txt
+
+# Copia requirements e instala dependencias
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY ..
-RUN python manage.py collectstatic --noinput
+
+# Copia el código fuente
+COPY . .
+
+# Puerto (ajústalo si no usas uvicorn)
 EXPOSE 8000
-CMD["gunicorn","course_project.wsgi:application","--bind","0.0.0.0:8000"]
+
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
