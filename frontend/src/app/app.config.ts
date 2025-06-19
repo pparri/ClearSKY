@@ -21,6 +21,11 @@ const routes: Routes = [
   { path: '', component: LoginComponent },
   { path: 'login', redirectTo: '', pathMatch: 'full' },
   {
+    path: 'student/student-dashboard',
+    component: StudentDashboardComponent,
+    canActivate: [authGuard]
+  },
+  {
     path: 'student/courses',
     loadComponent: () =>
       import('./dashboard/student/student-courses/student-courses.component')

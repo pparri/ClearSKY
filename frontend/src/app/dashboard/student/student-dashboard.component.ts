@@ -72,6 +72,11 @@ export class StudentDashboardComponent implements OnInit {
   }
 
   selectCourse(course: Course): void {
+    if (this.selectedCourse === course) {
+      this.selectedCourse = null;
+      return;
+    }
+
     this.selectedCourse = course;
     // Carica statistiche reali dal backend
     this.api.getCourseStats(String(course.id)).subscribe({
@@ -93,7 +98,15 @@ export class StudentDashboardComponent implements OnInit {
     });
   }
 
-  formatDate(dateStr: string): string {
-    return new Intl.DateTimeFormat('en-GB').format(new Date(dateStr));
+  
+  formatDate(date: any): string {
+    // Check if the date is null, undefined, or otherwise invalid.
+    if (!date || isNaN(new Date(date).getTime())) {
+      return ''; // Return a default value
+    }
+    // If the date is valid, format it.
+    // Replace with your actual formatting logic.
+    return new Intl.DateTimeFormat('es-ES').format(new Date(date));
   }
 }
+

@@ -19,24 +19,31 @@
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let c of courses">
-        <td>{{ c.name }}</td>
-        <td>{{ c.period }}</td>
-        <td>{{ formatDate(c.initialSubmission) }}</td>
-        <td>{{ formatDate(c.finalSubmission) }}</td>
-        <td>
-          <button class="btn-small" (click)="selectCourse(c)">Show Stats</button>
-        </td>
-      </tr>
+      <ng-container *ngFor="let c of courses">
+        <tr>
+          <td>{{ c.name }}</td>
+          <td>{{ c.period }}</td>
+          <td>{{ formatDate(c.initialSubmission) }}</td>
+          <td>{{ formatDate(c.finalSubmission) }}</td>
+          <td>
+            <button class="btn-small" (click)="selectCourse(c)">
+              {{ selectedCourse === c ? 'Hide Stats' : 'Show Stats' }}
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="selectedCourse === c">
+          <td colspan="5">
+            <div class="chart-card">
+              <h3>{{ selectedCourse.name }} – Statistics</h3>
+              <canvas baseChart
+                      [data]="barChartData"
+                      [options]="barChartOptions"
+                      [type]="barChartType">
+              </canvas>
+            </div>
+          </td>
+        </tr>
+      </ng-container>
     </tbody>
   </table>
-</div>
-
-<div class="chart-card" *ngIf="selectedCourse">
-  <h3>{{ selectedCourse.name }} – Statistics</h3>
-  <canvas baseChart
-          [data]="barChartData"
-          [options]="barChartOptions"
-          [type]="barChartType">
-  </canvas>
 </div>

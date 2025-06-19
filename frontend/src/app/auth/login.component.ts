@@ -37,18 +37,24 @@ export class LoginComponent {
           // Log di debug per vedere la risposta
           console.log('Login response:', response);
 
-          // Salva il token se il backend lo restituisce
-          if (response.token) {
-            localStorage.setItem('auth_token', response.token);
-            // Aggiorna lo stato utente nell'AuthService
-            this.auth.login({
-              email: response.user.email,
-              role: response.user.role as 'student' | 'instructor' | 'representative',
-              name: response.user.name
-            });
-            this.router.navigate(['/']);
-            this.errorMessage = null;
-          } else {
+          // Salva il token e utente se il backend li restituisce
+          if (response.token && response.user) {
+            this.auth.setCurrentUser(response.user, response.token);
+            const userRole = response.user.role;
+            
+            switch (userRole) {
+              case 'instructor':
+                this.router.navigate(['/instructor/instructor-dashboard']);
+                break;
+              case 'student':
+                this.router.navigate(['/student/student-dashboard']);
+                break;
+              case 'representative':
+                this.router.navigate(['/representative/dashboard']);
+                break;
+            }
+          } 
+          else {
             this.errorMessage = 'Invalid credentials or server error';
           }
         },

@@ -5,9 +5,12 @@ import { BehaviorSubject } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
 
 export interface User {
+  id: number;
+  username: string;
   email: string;
-  role: 'student' | 'instructor' | 'representative';
-  name?: string;
+  name: string;
+  role: string;
+  registration_id?: string;
   token?: string;
 }
 
@@ -28,14 +31,14 @@ export class AuthService {
     }
   }
 
-  login(creds: { email: string; role: User['role']; name?: string }) {
+  login(creds: { email: string; role: string; name?: string }) {
     const token = btoa(`${creds.email}:${creds.role}`);
-    const user: User = { ...creds, token };
-    this.user$.next(user);
+    const user: Partial<User> = { ...creds, token };
+    this.user$.next(user as User);
 
     if (isPlatformBrowser(this.platformId)) {
       localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('authToken', token);
+      localStorage.setItem('auth_token', token);
     }
 
     const target =
@@ -47,9 +50,18 @@ export class AuthService {
     this.router.navigate([target]);
   }
 
+  setCurrentUser(user: User, token: string) {
+    const userWithToken = { ...user, token };
+    this.user$.next(userWithToken);
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('auth_token', token);
+    }
+  }
+
   logout() {
     if (isPlatformBrowser(this.platformId)) {
-      localStorage.removeItem('authToken');
+      localStorage.removeItem('auth_token');
       localStorage.removeItem('user');
     }
     this.user$.next(null);
@@ -57,7 +69,7 @@ export class AuthService {
   }
 
   isLoggedIn(): boolean {
-    return typeof window !== 'undefined' && !!localStorage.getItem('authToken');
+    return typeof window !== 'undefined' && !!localStorage.getItem('auth_token');
   }
 
   // ✅ Getter per accedere all’utente corrente

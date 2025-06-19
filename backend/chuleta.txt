@@ -444,3 +444,7 @@ curl -X POST http://192.168.1.105:8000/api/users/login/ \
 frontend
 
 ng serve --open
+
+backend
+
+python3 manage.py runserver 0.0.0.0:8000

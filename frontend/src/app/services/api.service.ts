@@ -16,6 +16,7 @@ interface User {
   email: string;
   name: string;
   role: string;
+  registration_id?: string;
 }
 
 interface LoginResponse {
