@@ -1,13 +1,9 @@
 // src/app/dashboard/instructor/final-grades/final-grades.component.ts
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as XLSX from 'xlsx';
-
-interface Course {
-  name: string;
-  period: string;
-}
+import { ApiService, Course } from '../../../services/api.service';
 
 @Component({
   selector: 'app-final-grades',
@@ -16,18 +12,31 @@ interface Course {
   templateUrl: './final-grades.component.html',
   styleUrls: ['./final-grades.component.scss']
 })
-export class FinalGradesComponent {
-  courses: Course[] = [
-    { name: 'Software Engineering', period: 'Fall 2024' },
-    { name: 'Physics', period: 'Spring 2025' }
-  ];
-
+export class FinalGradesComponent implements OnInit {
+  courses: Course[] = [];
   selectedCourse: Course | null = null;
   fileName = '';
   parsedHeaders: string[] = [];
   parsedRows: any[][] = [];
   message: string | null = null;
   uploadConfirmed = false;
+
+  constructor(private api: ApiService) {}
+
+  ngOnInit(): void {
+    this.loadCourses();
+  }
+
+  loadCourses(): void {
+    this.api.getInstructorCourses().subscribe({
+      next: (courses) => {
+        this.courses = courses;
+      },
+      error: () => {
+        this.message = '❌ Failed to load courses.';
+      }
+    });
+  }
 
   onCourseSelect(): void {
     this.resetUpload();

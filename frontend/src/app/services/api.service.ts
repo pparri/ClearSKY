@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, BehaviorSubject, tap } from 'rxjs';
+import { Observable, BehaviorSubject, tap, map } from 'rxjs';
 
 export interface Course {
   id: string;
@@ -8,6 +8,16 @@ export interface Course {
   period: string;
   initialSubmission: string;
   finalSubmission: string;
+}
+
+export interface ReviewRequest {
+  id: number;
+  course: string;
+  period: string;
+  student: string;
+  studentMessage: string;
+  instructorReply?: string;
+  reviewStatus?: 'Pending' | 'Accepted' | 'Rejected';
 }
 
 interface User {
@@ -30,6 +40,8 @@ interface LoginResponse {
 export class ApiService {
   private baseUrl = '/api/users';      // Usa il proxy
   private coursesUrl = '/api/courses'; // Usa il proxy
+  private reviewsUrl = '/api/grades/reviews'; // Usa il proxy per le review
+  private studentGradesUrl = '/api/grades/grades'; // Usa il proxy per le note dello studente
   private tokenKey = 'auth_token';
 
   private _isLoggedIn$ = new BehaviorSubject<boolean>(this.hasToken());
@@ -88,6 +100,19 @@ export class ApiService {
     return this.http.get<User>(`${this.baseUrl}/me/`, { headers: this.getAuthHeaders() });
   }
 
+  // Ottieni tutti i corsi (per istruttore)
+  getInstructorCourses(): Observable<Course[]> {
+    return this.http.get<any[]>(`${this.coursesUrl}/`, { headers: this.getAuthHeaders() }).pipe(
+      map(backendCourses => backendCourses.map(course => ({
+        id: String(course.id),
+        name: course.title,
+        period: course.period || 'N/A', // Fallback se period non è presente
+        initialSubmission: course.initial_submission_date,
+        finalSubmission: course.final_submission_date
+      })))
+    );
+  }
+
   // Ottieni tutti i corsi (per studente)
   getStudentCourses(): Observable<Course[]> {
     return this.http.get<Course[]>(`${this.coursesUrl}/`, { headers: this.getAuthHeaders() });
@@ -102,6 +127,21 @@ export class ApiService {
     return this.http.get<{ labels: string[]; data: number[] }>(
       `${this.coursesUrl}/${courseId}/stats/`,
       { headers: this.getAuthHeaders() }
+    );
+  }
+
+  // Ottieni richieste di revisione per l'istruttore
+  getReviewRequests(): Observable<ReviewRequest[]> {
+    return this.http.get<any[]>(`${this.reviewsUrl}/`, { headers: this.getAuthHeaders() }).pipe(
+      map(requests => requests.map(req => ({
+        id: req.id,
+        course: req.grade.course.title,
+        period: req.grade.semester,
+        student: req.grade.student.name,
+        studentMessage: req.reason,
+        instructorReply: req.response,
+        reviewStatus: req.state
+      })))
     );
   }
 }

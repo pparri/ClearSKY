@@ -1,15 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-interface ReviewRequest {
-  course: string;
-  period: string;
-  student: string;
-  studentMessage: string;
-  instructorReply?: string;
-  reviewStatus?: 'Accepted' | 'Rejected';
-}
+import { ApiService, ReviewRequest } from '../../../services/api.service';
 
 @Component({
   selector: 'app-review-requests',
@@ -18,24 +10,33 @@ interface ReviewRequest {
   templateUrl: './review-requests.component.html',
   styleUrls: ['./review-requests.component.scss']
 })
-export class ReviewRequestsComponent {
-  reviewRequests: ReviewRequest[] = [
-    {
-      course: 'Software Engineering',
-      period: 'Fall 2024',
-      student: 'Alice Smith',
-      studentMessage: 'I believe my grade is too low. Please check again.'
-    }
-  ];
-
+export class ReviewRequestsComponent implements OnInit {
+  reviewRequests: ReviewRequest[] = [];
   selectedReview: ReviewRequest | null = null;
   instructorReply = '';
   instructorDecision: 'Accepted' | 'Rejected' | null = null;
 
+  constructor(private api: ApiService) {}
+
+  ngOnInit(): void {
+    this.loadReviewRequests();
+  }
+
+  loadReviewRequests(): void {
+    this.api.getReviewRequests().subscribe({
+      next: (requests) => {
+        this.reviewRequests = requests;
+      },
+      error: () => {
+        alert('Failed to load review requests.');
+      }
+    });
+  }
+
   selectReview(req: ReviewRequest): void {
     this.selectedReview = req;
     this.instructorReply = req.instructorReply || '';
-    this.instructorDecision = req.reviewStatus || null;
+    this.instructorDecision = req.reviewStatus === 'Pending' || req.reviewStatus === undefined ? null : req.reviewStatus;
   }
 
   submitReply(): void {

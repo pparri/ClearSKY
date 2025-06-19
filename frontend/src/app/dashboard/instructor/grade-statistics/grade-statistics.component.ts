@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartConfiguration, ChartOptions } from 'chart.js';
+import { ApiService, Course } from '../../../services/api.service';
 
 interface CourseStats {
   name: string;
@@ -17,22 +18,8 @@ interface CourseStats {
   templateUrl: './grade-statistics.component.html',
   styleUrls: ['./grade-statistics.component.scss']
 })
-export class ViewGradesStatisticsComponent {
-  courses: CourseStats[] = [
-    {
-      name: 'Software Engineering',
-      period: 'Fall 2024',
-      initialDate: '2024-10-01',
-      finalDate: '2025-01-15'
-    },
-    {
-      name: 'Physics',
-      period: 'Spring 2025',
-      initialDate: null,
-      finalDate: null
-    }
-  ];
-
+export class ViewGradesStatisticsComponent implements OnInit {
+  courses: CourseStats[] = [];
   selectedCourse: CourseStats | null = null;
 
   public chartData: ChartConfiguration<'bar'>['data'] = {
@@ -59,6 +46,28 @@ export class ViewGradesStatisticsComponent {
       }
     }
   };
+
+  constructor(private api: ApiService) {}
+
+  ngOnInit(): void {
+    this.loadCourses();
+  }
+
+  loadCourses(): void {
+    this.api.getInstructorCourses().subscribe({
+      next: (courses: Course[]) => {
+        this.courses = courses.map(c => ({
+          name: c.name,
+          period: c.period,
+          initialDate: c.initialSubmission,
+          finalDate: c.finalSubmission
+        }));
+      },
+      error: () => {
+        alert('❌ Failed to load courses statistics.');
+      }
+    });
+  }
 
   toggleChart(course: CourseStats): void {
     if (!course.initialDate) {
