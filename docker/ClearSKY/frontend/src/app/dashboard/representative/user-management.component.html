@@ -1,0 +1,42 @@
+<div class="user-management-card">
+  <h2>User Management</h2>
+
+  <div class="form-group">
+    <label for="institution">Institution</label>
+    <select id="institution" [(ngModel)]="selectedInstitution">
+      <option *ngFor="let inst of institutions" [value]="inst">{{ inst }}</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label for="type">Type</label>
+    <select id="type" [(ngModel)]="selectedType">
+      <option *ngFor="let type of userTypes" [value]="type">
+        {{ type.charAt(0).toUpperCase() + type.slice(1) }}
+      </option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label for="email">User Email</label>
+    <input id="email" type="email" [(ngModel)]="email" placeholder="Enter email" />
+  </div>
+
+  <div class="form-group">
+    <label for="password">Password</label>
+    <input id="password" type="password" [(ngModel)]="password" placeholder="Enter password" />
+  </div>
+
+  <div class="form-group">
+    <label for="id">ID</label>
+    <input id="id" type="text" [(ngModel)]="id" placeholder="Enter ID" />
+  </div>
+
+  <div class="button-row">
+    <button class="btn light" (click)="addUser()">Add User</button>
+    <button class="btn primary" (click)="changePassword()">Change Password</button>
+  </div>
+
+  <div class="message success" *ngIf="success">{{ success }}</div>
+  <div class="message error" *ngIf="error">{{ error }}</div>
+</div>

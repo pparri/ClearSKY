@@ -1,0 +1,148 @@
+version: '3.9'
+
+services:
+  user_service:
+    build:
+      context: ./user_service
+    container_name: user-service
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./user-service:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - user_db
+    environment:
+      - DJANGO_SETTINGS_MODULE=user_service.settings
+      - POSTGRES_DB=user_service_db
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=PWD
+      - DB_HOST=user-db
+      - DB_PORT=5432
+
+  user_db:
+    image: postgres:15
+    container_name: user-db
+    restart: always
+    environment:
+      POSTGRES_DB: user_service_db
+      POSTGRES_USER: db_user
+      POSTGRES_PASSWORD: PWD
+    volumes:
+      - postgres_user_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  institution_service:
+    build:
+      context: ./institution_service
+    container_name: institution-service
+    command: python manage.py runserver 0.0.0.0:8001
+    volumes:
+      - ./institution_service:/app
+    ports:
+      - "8001:8001"
+    depends_on:
+      - institution_db
+    environment:
+      - DJANGO_SETTINGS_MODULE=institution_service.settings
+      - POSTGRES_DB=institution_service_db
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=PWD
+      - DB_HOST=institution-db
+      - DB_PORT=5432
+
+  institution_db:
+    image: postgres:15
+    container_name: institution-db
+    restart: always
+    environment:
+      POSTGRES_DB: institution_service_db
+      POSTGRES_USER: db_user
+      POSTGRES_PASSWORD: PWD
+    volumes:
+      - postgres_institution_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+
+  course_service:
+    build:
+      context: ./course_service
+    container_name: course-service
+    command: python manage.py runserver 0.0.0.0:8002
+    volumes:
+      - ./course_service:/app
+    ports:
+      - "8002:8002"
+    depends_on:
+      - course_db
+    environment:
+      - DJANGO_SETTINGS_MODULE=course_service.settings
+      - POSTGRES_DB=course_service_db
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=PWD
+      - DB_HOST=course-db
+      - DB_PORT=5432
+
+  course_db:
+    image: postgres:15
+    container_name: course-db
+    restart: always
+    environment:
+      POSTGRES_DB: course_service_db
+      POSTGRES_USER: db_user
+      POSTGRES_PASSWORD: PWD
+    volumes:
+      - postgres_course_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+
+  grade_service:
+    build:
+      context: ./grade_service
+    container_name: grade-service
+    command: python manage.py runserver 0.0.0.0:8003
+    volumes:
+      - ./grade_service:/app
+    ports:
+      - "8003:8003"
+    depends_on:
+      - grade_db
+    environment:
+      - DJANGO_SETTINGS_MODULE=grade_service.settings
+      - POSTGRES_DB=grade_service_db
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=PWD
+      - DB_HOST=grade-db
+      - DB_PORT=5432
+
+  grade_db:
+    image: postgres:15
+    container_name: grade-db
+    restart: always
+    environment:
+      POSTGRES_DB: grade_service_db
+      POSTGRES_USER: db_user
+      POSTGRES_PASSWORD: PWD
+    volumes:
+      - postgres_grade_data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend
+    ports:
+      - "3000:80"  # 3000 en machine → 80 en el contenedor NGINX
+    depends_on:
+      - user_service
+      - institution_service
+      - course_service
+      - grade_service
+
+volumes:
+  postgres_user_data:
+  postgres_institution_data:
+  postgres_course_data:
+  postgres_grade_data:

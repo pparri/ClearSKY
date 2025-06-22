@@ -1,0 +1,43 @@
+<div class="grades-statistics">
+  <h2>Grades Statistics</h2>
+
+  <div class="table-card">
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Course</th>
+          <th>Period</th>
+          <th>Initial Date</th>
+          <th>Final Date</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let c of courses">
+          <tr>
+            <td>{{ c.name }}</td>
+            <td>{{ c.period }}</td>
+            <td>{{ c.initialDate || 'Not yet submitted' }}</td>
+            <td>{{ c.finalDate || 'Not yet submitted' }}</td>
+            <td>
+              <button class="btn-outline" (click)="toggleChart(c)">
+                {{ selectedCourse === c ? 'Hide Chart' : 'View Chart' }}
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="selectedCourse === c">
+            <td colspan="5">
+              <div class="chart-box">
+                <canvas baseChart
+                        [data]="chartData"
+                        [options]="chartOptions"
+                        [type]="'bar'">
+                </canvas>
+              </div>
+            </td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+</div>

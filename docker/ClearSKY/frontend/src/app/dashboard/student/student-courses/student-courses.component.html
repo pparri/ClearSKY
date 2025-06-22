@@ -1,0 +1,55 @@
+<div class="courses-wrapper">
+  <h2>My Courses</h2>
+  <table class="course-table">
+    <thead>
+      <tr>
+        <th>Course</th>
+        <th>Period</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let c of courses">
+        <td>{{ c.name }}</td>
+        <td>{{ c.period }}</td>
+        <td>
+          <button (click)="viewGrades(c)">View My Grades</button>
+          <button [disabled]="c.hasRequestedReview || !isSemesterOpen(c.period)" (click)="showReviewForm(c)">Ask for Review</button>
+          <button [disabled]="!c.hasRequestedReview" (click)="viewReviewStatus(c)">View Review Status</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="result-section" *ngIf="selectedCourse && selectedView === 'grades'">
+  <h3>{{ selectedCourse.name }} – Grade Statistics</h3>
+  <canvas baseChart
+          [data]="barChartData"
+          [options]="barChartOptions"
+          [type]="barChartType">
+  </canvas>
+  <p class="grade-msg">
+    Your grade is {{ selectedCourse.grade }}.
+    <span *ngIf="selectedCourse.grade >= 5">🎉 Congratulations! You passed the exam.</span>
+    <span *ngIf="selectedCourse.grade < 5">💡 You didn’t pass the exam. Don’t worry, you will for sure!</span>
+  </p>
+</div>
+
+<div class="review-section" *ngIf="selectedCourse && selectedView === 'review'">
+  <h3>Review Request – {{ selectedCourse.name }}</h3>
+  <textarea [(ngModel)]="reviewMessage" rows="4" placeholder="Write your review message..."></textarea>
+  <button (click)="sendReview(selectedCourse)">Submit Review Request</button>
+</div>
+
+<div class="status-section" *ngIf="selectedCourse && selectedView === 'status'">
+  <h3>Review Status – {{ selectedCourse.name }}</h3>
+  <div class="review-status">
+    <p><strong>Sent message:</strong></p>
+    <p>{{ selectedCourse.reviewMessage || 'N/A' }}</p>
+    <p><strong>Instructor reply:</strong></p>
+    <p>{{ selectedCourse.instructorReply || getStatusMessage(selectedCourse) }}</p>
+  </div>
+</div>
+
+<p *ngIf="submittedMessage" class="success-msg">{{ submittedMessage }}</p>

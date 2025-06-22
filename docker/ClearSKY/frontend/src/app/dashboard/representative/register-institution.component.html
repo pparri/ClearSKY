@@ -1,0 +1,21 @@
+<div class="register-card">
+    <h2>Register Institution</h2>
+    <form (ngSubmit)="registerInstitution()">
+      <label>
+        Institution Name:
+        <input [(ngModel)]="institutionName" name="name" placeholder="e.g. NTUA" required />
+      </label>
+  
+      <label>
+        Institution Code:
+        <input [(ngModel)]="institutionCode" name="code" placeholder="e.g. NT123" required />
+      </label>
+  
+      <button type="submit">Register</button>
+    </form>
+  
+    <div class="message" *ngIf="message">
+      {{ message }}
+    </div>
+  </div>
+  
