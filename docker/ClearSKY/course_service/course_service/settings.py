@@ -82,8 +82,8 @@ DATABASES = {
         'NAME': 'course_service_db',
         'USER': 'db_course',
         'PASSWORD': 'db_password',
-        'HOST': 'localhost',
-        'PORT': '5434',
+        'HOST': 'course_db',
+        'PORT': '5432',
     }
 }
 

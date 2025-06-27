@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'grades',
+    'grade',
     'rest_framework',
 ]
 
@@ -82,8 +82,8 @@ DATABASES = {
         'NAME': 'grade_service_db',
         'USER': 'db_grade',
         'PASSWORD': 'PWD',
-        'HOST': 'localhost',
-        'PORT': '5435',
+        'HOST': 'grade_db',
+        'PORT': '5432',
     }
 }
 

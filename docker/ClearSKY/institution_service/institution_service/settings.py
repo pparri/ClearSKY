@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'institutions'
+    'institution'
 ]
 
 AUTH_INSTITUTIONS_MODEL = 'institutions.Institution'
@@ -79,11 +79,11 @@ WSGI_APPLICATION = 'institution_service.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'institutions_service_db',
-        'USER': 'db_institutions',
+        'NAME': 'institution_service_db',
+        'USER': 'db_institution',
         'PASSWORD': 'PWD',
-        'HOST': 'localhost',
-        'PORT': '5433',
+        'HOST': 'institution_db',
+        'PORT': '5432',
     }
 }
 

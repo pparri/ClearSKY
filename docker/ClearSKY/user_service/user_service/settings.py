@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'users',
+    'user',
 ]
 
 AUTH_USER_MODEL = 'users.User'
@@ -82,7 +82,7 @@ DATABASES = {
         'NAME': 'user_service_db',
         'USER': 'db_user',
         'PASSWORD': 'PWD',
-        'HOST': 'localhost',
+        'HOST': 'user_db',
         'PORT': '5432',
     }
 }
