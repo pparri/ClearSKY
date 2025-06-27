@@ -321,6 +321,14 @@ class GradeExcelUploadView(APIView):
         
             submission_type = request.data.get('submission_type', 'initial')
 
+             # Establecer el estado según el tipo de calificación
+            if submission_type == 'initial':
+                grade_state = GradeAssignment.GradeState.OPEN
+            elif submission_type == 'final':
+                grade_state = GradeAssignment.GradeState.FINAL
+            else:
+                grade_state = GradeAssignment.GradeState.OPEN  # Por defecto
+
 
             grade, created = GradeAssignment.objects.update_or_create(
             student=student_obj,
@@ -331,6 +339,8 @@ class GradeExcelUploadView(APIView):
                 'grade_value': row['grade_value'],
                 'instructor': request.user,
                 'submission_type': submission_type,
+                'state': grade_state, 
+
 
                 }
             )
