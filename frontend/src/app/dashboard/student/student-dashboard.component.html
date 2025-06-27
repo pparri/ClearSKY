@@ -6,7 +6,6 @@
 <div class="table-header">
   <h2>Current Semester Courses</h2>
 </div>
-
 <div class="table-card" *ngIf="courses.length > 0">
   <table class="courses-table">
     <thead>
@@ -23,8 +22,8 @@
         <tr>
           <td>{{ c.name }}</td>
           <td>{{ c.period }}</td>
-          <td>{{ formatDate(c.initialSubmission) }}</td>
-          <td>{{ formatDate(c.finalSubmission) }}</td>
+          <td>{{ formatDate(c.initialDate) }}</td>
+          <td>{{ formatDate(c.finalDate) }}</td>
           <td>
             <button class="btn-small" (click)="selectCourse(c)">
               {{ selectedCourse === c ? 'Hide Stats' : 'Show Stats' }}
@@ -47,3 +46,4 @@
     </tbody>
   </table>
 </div>
+

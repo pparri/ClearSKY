@@ -1,5 +1,8 @@
+<!-- grade-statistics.component.html -->
 <div class="grades-statistics">
-  <h2>Grades Statistics</h2>
+  <div class="dashboard-header">
+    <h2>📊 Grades Statistics</h2>
+  </div>
 
   <div class="table-card">
     <table class="styled-table">
@@ -17,22 +20,64 @@
           <tr>
             <td>{{ c.name }}</td>
             <td>{{ c.period }}</td>
-            <td>{{ c.initialDate || 'Not yet submitted' }}</td>
-            <td>{{ c.finalDate || 'Not yet submitted' }}</td>
+            <td>{{ c.initialDate ? (c.initialDate | date:'short') : 'Not yet submitted' }}</td>
+            <td>{{ c.finalDate ? (c.finalDate | date:'short') : 'Not yet submitted' }}</td>
             <td>
               <button class="btn-outline" (click)="toggleChart(c)">
-                {{ selectedCourse === c ? 'Hide Chart' : 'View Chart' }}
+                {{ selectedCourse === c ? '🔽 Hide Chart' : '📊 View Chart' }}
               </button>
             </td>
           </tr>
+          
+          <!-- Estadísticas expandidas -->
           <tr *ngIf="selectedCourse === c">
             <td colspan="5">
-              <div class="chart-box">
-                <canvas baseChart
-                        [data]="chartData"
-                        [options]="chartOptions"
-                        [type]="'bar'">
-                </canvas>
+              <div class="statistics-container">
+                
+                <!-- Loading indicator -->
+                <div *ngIf="loading" class="loading-container">
+                  <p>⏳ Loading statistics...</p>
+                </div>
+
+                <!-- Charts container -->
+                <div *ngIf="!loading && chartDataLoaded" class="charts-wrapper">
+                  
+                  <!-- Gráfico General -->
+                  <div class="general-chart">
+                    <h3>📈 {{ selectedCourse.name }} - Grade Distribution</h3>
+                    <div class="chart-container">
+                      <canvas baseChart
+                              [data]="chartData"
+                              [options]="chartOptions"
+                              [type]="'bar'">
+                      </canvas>
+                    </div>
+                  </div>
+
+                  <!-- Gráficos de Preguntas -->
+                  <div *ngIf="getQuestionKeys().length > 0" class="questions-section">
+                    <h3>📋 Question-by-Question Analysis</h3>
+                    <div class="questions-grid">
+                      <div class="question-chart" *ngFor="let questionNum of getQuestionKeys()">
+                        <h4>{{ questionNum }}</h4>
+                        <div class="chart-container-small">
+                          <canvas baseChart
+                                  [data]="questionCharts[questionNum]"
+                                  [options]="questionChartOptions"
+                                  [type]="'bar'">
+                          </canvas>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- No data message -->
+                <div *ngIf="!loading && !chartDataLoaded" class="no-data-container">
+                  <p>❌ Could not load statistics for this course.</p>
+                </div>
+
               </div>
             </td>
           </tr>

@@ -14,7 +14,12 @@ urlpatterns = [
     path('reviews/<int:pk>/respond/', views.RespondToReviewView.as_view(), name='review-respond'),
 
     path('upload-excel/', GradeExcelUploadView.as_view(), name='grade-upload-excel'),
-    path('courses/<int:course_pk>/semester/statistics/<str:semester_name>/', views.CourseGradeStatisticsView.as_view(), name='course-grade-statistics'),
+
+    path('courses/<int:course_pk>/semester/<str:semester_name>/statistics/', 
+         CourseGradeStatisticsView.as_view(), 
+         name='course-grade-statistics'),
+
+    path('student-course/<int:course_id>/', views.student_grades_detail, name='student-course-grades'),  
 
 
 ]

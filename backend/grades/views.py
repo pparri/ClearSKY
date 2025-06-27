@@ -126,19 +126,36 @@ class RequestReviewView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def post(self, request, pk, format=None):
         grade = get_object_or_404(GradeAssignment, pk=pk)
-        # 2. Verificar que el solicitante es el estudiante de la nota
+        # 1. Verificar que el solicitante es el estudiante de la nota
         if grade.student != request.user:
             return Response({'error': 'No autorizado'}, status=403)
-        # 3. Verificar que la nota está abierta
+        # 2. Verificar que la nota está abierta
         if grade.state != GradeAssignment.GradeState.OPEN:
             return Response({'error': 'Nota no está abierta'}, status=400)
-        #obtener el motivo de la solicitud de revisión
-        review = ReviewRequest.objects.create(
-            grade_assignment=grade,
-            reason=request.data.get('reason')
-        )
-        serializer = ReviewRequestSerializer(review)
-        return Response(serializer.data, status=201)
+        
+        # 3. VERIFICAR QUE NO EXISTE YA UNA REVIEW PARA ESTE ESTUDIANTE EN ESTE CURSO
+        existing_review = ReviewRequest.objects.filter(
+            grade_assignment__student=request.user,
+            grade_assignment__course=grade.course
+        ).first()
+        
+        if existing_review:
+            return Response({
+                'error': 'Ya has enviado una solicitud de revisión para este curso',
+                'review_id': existing_review.id,
+                'submitted_at': existing_review.submitted_at
+            }, status=400)
+        
+        # 4. Crear la nueva review request
+        try:
+            review = ReviewRequest.objects.create(
+                grade_assignment=grade,
+                reason=request.data.get('reason')
+            )
+            serializer = ReviewRequestSerializer(review)
+            return Response(serializer.data, status=201)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=400)
 
 # Listar solicitudes de revisión para el instructor autenticado
 class ReviewRequestListView(APIView):
@@ -267,7 +284,7 @@ class GradeExcelUploadView(APIView):
         except Exception as e:
             return Response({'error': f'Error reading Excel: {str(e)}'}, status=400)
 
-
+        #----------DEBUG------------
         # Renombrar columnas griegas a nombres esperados
         print("Columnas originales:", df.columns.tolist()) #debug para imprimir las columnas originales
 
@@ -284,14 +301,13 @@ class GradeExcelUploadView(APIView):
 
         question_columns = [col for col in df.columns if col.startswith('Q') and len(col) == 3]  # Q01, Q02, ...
 
+
+        #verificamos que cada usuario y curso existen antes en la base de datos (sino error)
+        
         for idx, row in df.iterrows():
-            #verificamos que cada usuario y curso existen antes en la base de datos (sino error)
             try:
                 # Obtener el 'Αριθμός Μητρώου' (ahora en row['student_id'] del DataFrame)
                 student_reg_id_from_excel = str(row['student_id']).strip()
-                # Si el ID tiene 7 dígitos, agregar un 0 al inicio
-                #if len(student_reg_id_from_excel) == 7 and student_reg_id_from_excel.isdigit():
-                    #student_reg_id_from_excel = "0" + student_reg_id_from_excel
                 
                 # Buscar al usuario por el campo 'registration_id'
                 student_obj = User.objects.get(registration_id=student_reg_id_from_excel)
@@ -302,13 +318,20 @@ class GradeExcelUploadView(APIView):
             if not (0 <= row['grade_value'] <= 10):
                 return Response({'error': f'Fila {idx+4}: grade_value "{row["grade_value"]}" fuera de rango (0-10).'}, status=400)
 
+        
+            submission_type = request.data.get('submission_type', 'initial')
+
+
             grade, created = GradeAssignment.objects.update_or_create(
             student=student_obj,
             course=course,
             semester=semester,
+            submission_type = submission_type,
             defaults={
                 'grade_value': row['grade_value'],
                 'instructor': request.user,
+                'submission_type': submission_type,
+
                 }
             )
             if "basic" not in excel_filename:
@@ -426,7 +449,69 @@ class CourseGradeStatisticsView(APIView):
             "semester": semester_name,
             "student_count": grade_assignments.values('student').distinct().count(),
             "general_grades_plot_data": general_plot_data,
-            "question_grades_plot_data": question_grades_plot_data
+            "question_grades_plot_data": question_grades_plot_data,
+            "debug_raw_grades": [ga.grade_value for ga in grade_assignments if ga.grade_value is not None]
         }, status=status.HTTP_200_OK)
 
+#----------------------------------------Student Endpoints---------------------------------
 
+# En grades/views.py - CORREGIR student_grades_detail
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def student_grades_detail(request, course_id):
+    """Vista detallada de notas de un estudiante para un curso específico"""
+    
+    if request.user.role != 'student':
+        return Response({'error': 'Solo estudiantes pueden acceder'}, status=403)
+    
+    course = get_object_or_404(Course, pk=course_id)
+    
+    # ✅ INCLUIR review_requests en la query
+    grades = GradeAssignment.objects.filter(
+        student=request.user,
+        course=course
+    ).prefetch_related('question_grades', 'review_requests').order_by('-timestamp')
+    
+    if not grades.exists():
+        return Response({
+            'course_name': course.title,
+            'message': 'No tienes notas para este curso',
+            'grades': []
+        })
+    
+    grades_data = []
+    for grade in grades:
+        # Obtener notas por pregunta
+        question_grades = {}
+        for qg in grade.question_grades.all():
+            question_grades[qg.question_number] = qg.value
+        
+        # ✅ INCLUIR review_requests en la respuesta
+        review_requests = []
+        for review in grade.review_requests.all():
+            review_requests.append({
+                'id': review.id,
+                'reason': review.reason,
+                'response': review.response,
+                'submitted_at': review.submitted_at.isoformat(),
+                'responded_at': review.responded_at.isoformat() if review.responded_at else None,
+                'responded_by': review.responded_by.name if review.responded_by else None
+            })
+        
+        grades_data.append({
+            'id': grade.id,
+            'semester': grade.semester,
+            'submission_type': grade.submission_type,
+            'grade_value': grade.grade_value,
+            'state': grade.state,
+            'timestamp': grade.timestamp.isoformat(),
+            'question_grades': question_grades,
+            'can_request_review': grade.state == 'OPEN',
+            'review_requests': review_requests  # ✅ AÑADIR ESTE CAMPO
+        })
+    
+    return Response({
+        'course_name': course.title,
+        'course_code': course.code,
+        'grades': grades_data
+    })

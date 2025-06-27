@@ -27,7 +27,8 @@ class GradeAssignmentSerializer(serializers.ModelSerializer):
             'grade_value', 
             'state',    #grading status
             'semester', #exam period
-            'question_grades'
+            'question_grades',
+            'timestamp',
         ]
         read_only_fields = ['timestamp', 'instructor']  # instructor lo setea la vista
 

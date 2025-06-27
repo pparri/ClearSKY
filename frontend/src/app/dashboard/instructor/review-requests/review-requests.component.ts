@@ -40,10 +40,36 @@ export class ReviewRequestsComponent implements OnInit {
   }
 
   submitReply(): void {
-    if (this.selectedReview && this.instructorDecision) {
-      this.selectedReview.reviewStatus = this.instructorDecision;
-      this.selectedReview.instructorReply = this.instructorReply;
-      alert(`Reply sent to ${this.selectedReview.student}`);
+    if (!this.selectedReview || !this.instructorDecision || !this.instructorReply.trim()) {
+      alert('Finish the selection please.');
+      return;
     }
+  
+    // 🚀 CORREGIDO: Llamar al backend
+    const response = `${this.instructorDecision}: ${this.instructorReply}`;
+    
+    this.api.respondToReview(this.selectedReview.id, response).subscribe({
+      next: (result) => {
+        console.log('✅ Respuesta enviada:', result);
+        
+        // Actualizar el estado local
+        this.selectedReview!.reviewStatus = this.instructorDecision!;
+        this.selectedReview!.instructorReply = response;
+        
+        // Limpiar formulario
+        this.selectedReview = null;
+        this.instructorReply = '';
+        this.instructorDecision = null;
+        
+        // Recargar la lista
+        this.loadReviewRequests();
+        
+        alert('Answer sended correctly');
+      },
+      error: (error) => {
+        console.error(' Error sending the answer:', error);
+        alert(` Error: ${error.error?.error || error.message}`);
+      }
+    });
   }
 }

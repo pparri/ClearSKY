@@ -1,14 +1,19 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, BehaviorSubject, tap, map } from 'rxjs';
+import { Observable, BehaviorSubject, tap, map, catchError, throwError } from 'rxjs';
 
 export interface Course {
   id: string;
   name: string;
   period: string;
-  initialSubmission: string;
-  finalSubmission: string;
+  initialDate: string;
+  finalDate: string;
+  initialSemester?: string;
+  finalSemester?: string;
+  gradeState?: 'OPEN' | 'CLOSED' | 'FINAL'; 
+  canRequestReview?: boolean;  
 }
+
 
 export interface ReviewRequest {
   id: number;
@@ -79,6 +84,12 @@ export class ApiService {
       ...(token ? { 'Authorization': `Token ${token}` } : {})
     });
   }
+  //UploadExcel
+  uploadExcel(formData: FormData): Observable<any> {
+    const token = this.getToken();
+    const headers = token ? new HttpHeaders({ 'Authorization': `Token ${token}` }) : undefined;
+    return this.http.post('/api/grades/upload-excel/', formData, { headers });
+  }
 
   // Registro utente
   register(userData: {username: string, email: string, name: string, password: string, role: string}): Observable<any> {
@@ -107,41 +118,169 @@ export class ApiService {
         id: String(course.id),
         name: course.title,
         period: course.period || 'N/A', // Fallback se period non è presente
-        initialSubmission: course.initial_submission_date,
-        finalSubmission: course.final_submission_date
+        initialDate: course.initial_submission_date,
+        finalDate: course.final_submission_date
       })))
     );
   }
 
-  // Ottieni tutti i corsi (per studente)
-  getStudentCourses(): Observable<Course[]> {
-    return this.http.get<Course[]>(`${this.coursesUrl}/`, { headers: this.getAuthHeaders() });
+  getCourseStatistics(): Observable<Course[]> {
+    return this.http.get<any[]>('/api/courses/statistics/', { headers: this.getAuthHeaders() }).pipe(
+      map(stats => stats.map(stat => ({
+        id: String(stat.id),
+        name: stat.name,
+        period: stat.period || 'N/A', // Fallback se period non è presente
+        initialDate: stat.initialDate,
+        finalDate: stat.finalDate,
+        initialSemester: stat.initialSemester,
+        finalSemester: stat.finalSemester
+      })))
+    );
   }
 
-  // Ottieni dettagli di un corso
-  getCourse(courseId: string): Observable<Course> {
+  getCourseGradeStatistics(courseId: string, semester: string): Observable<any> {
+    const url = `/api/grades/courses/${courseId}/semester/${encodeURIComponent(semester)}/statistics/`;
+    console.log(`🌐 Llamando a URL: ${url}`); // Debug
+    
+    return this.http.get<any>(url, { headers: this.getAuthHeaders() }).pipe(
+      tap(response => console.log('📊 Respuesta del servidor:', response)), // Debug
+      catchError(error => {
+        console.error('🚨 Error en API call:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+   // Ottieni dettagli di un corso
+   getCourse(courseId: string): Observable<Course> {
     return this.http.get<Course>(`${this.coursesUrl}/${courseId}/`, { headers: this.getAuthHeaders() });
   }
 
+  // Ottieni tutti i corsi (per studente)
   getCourseStats(courseId: string): Observable<{ labels: string[]; data: number[] }> {
-    return this.http.get<{ labels: string[]; data: number[] }>(
-      `${this.coursesUrl}/${courseId}/stats/`,
-      { headers: this.getAuthHeaders() }
+    // Para estudiantes, mostrar sus propias notas
+    return this.getStudentGradeDetails(courseId).pipe(
+      map(response => {
+        const grades = response.grades || [];
+        
+        if (grades.length === 0) {
+          return { labels: [], data: [] };
+        }
+        
+        // Crear gráfico con las notas del estudiante
+        const labels = grades.map((g: any) => `${g.submission_type} (${g.semester})`);
+        const data = grades.map((g: any) => g.grade_value || 0);
+        
+        return { labels, data };
+      })
     );
   }
 
   // Ottieni richieste di revisione per l'istruttore
   getReviewRequests(): Observable<ReviewRequest[]> {
-    return this.http.get<any[]>(`${this.reviewsUrl}/`, { headers: this.getAuthHeaders() }).pipe(
+    return this.http.get<any[]>(`/api/grades/reviews/`, { headers: this.getAuthHeaders() }).pipe(
       map(requests => requests.map(req => ({
         id: req.id,
-        course: req.grade.course.title,
-        period: req.grade.semester,
-        student: req.grade.student.name,
+        course: req.grade_assignment?.course?.title || 'Unknown Course',
+        period: req.grade_assignment?.semester || 'Unknown Period', 
+        student: req.grade_assignment?.student?.name || 'Unknown Student',
         studentMessage: req.reason,
-        instructorReply: req.response,
-        reviewStatus: req.state
+        instructorReply: req.response || '',
+        reviewStatus: this.mapReviewStatus(req.response) // Mapear estado basado en respuesta
       })))
     );
   }
+
+  respondToReview(reviewId: number, response: string): Observable<any> {
+    return this.http.post(`/api/grades/reviews/${reviewId}/respond/`, 
+      { response }, 
+      { headers: this.getAuthHeaders() }
+    );
+  }
+  //Helper method to map review status based on response
+  private mapReviewStatus(response: string | null): 'Pending' | 'Accepted' | 'Rejected' {
+    if (!response) {
+      return 'Pending';
+    }
+    
+    // 🚀 CORREGIDO: Mapear basado en el contenido de la respuesta
+    const responseLower = response.toLowerCase();
+    
+    if (responseLower.startsWith('accepted')) {
+      return 'Accepted';
+    } else if (responseLower.startsWith('rejected')) {
+      return 'Rejected';
+    }
+    
+    // Si tiene respuesta pero no empieza con accepted/rejected, asumir que está respondida
+    return 'Accepted'; // Por defecto
+  }
+
+  getStudentCourses(): Observable<Course[]> {
+    console.log('🔑 Token usado:', this.getToken());
+    return this.http.get<any[]>('/api/courses/student-courses/', { 
+      headers: this.getAuthHeaders() 
+    }).pipe(
+      map(backendCourses => backendCourses.map(course => ({
+        id: String(course.id),
+        name: course.name, 
+        period: course.period || 'N/A',
+        initialDate: course.initialDate,
+        finalDate: course.finalDate,
+        gradeState: course.gradeState || 'CLOSED', 
+        canRequestReview: course.canRequestReview || false,
+        hasRequestedReview: course.hasRequestedReview || false
+
+      }))),
+      tap(response => console.log('📋 Cursos mapeados:', response)),
+      catchError(error => {
+        console.error('🚨 Error en getStudentCourses:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  getStudentGradeDetails(courseId: string): Observable<any> {
+    return this.http.get<any>(`/api/grades/student-course/${courseId}/`, { 
+      headers: this.getAuthHeaders() 
+    });
+  }
+
+  requestReview(gradeId: number, reason: string): Observable<any> {
+    return this.http.post(`/api/grades/grades/${gradeId}/request-review/`, 
+      { reason }, 
+      { headers: this.getAuthHeaders() }
+    );
+  }
+
+  getStudentReviewStatus(courseId: string): Observable<any> {
+    // Usar el endpoint existente que ya tienes
+    return this.http.get(`/api/grades/grades/`, { 
+      headers: this.getAuthHeaders() 
+    }).pipe(
+      map(response => {
+        // Filtrar solo las notas del curso específico
+        const grades = Array.isArray(response) ? response : [];
+        const courseGrades = grades.filter((grade: any) => 
+          String(grade.course?.id) === courseId || String(grade.course) === courseId
+        );
+        
+        // Extraer información de reviews de las notas
+        const reviews = courseGrades
+          .filter((grade: any) => grade.review_requests && grade.review_requests.length > 0)
+          .flatMap((grade: any) => grade.review_requests.map((review: any) => ({
+            ...review,
+            grade_id: grade.id,
+            semester: grade.semester
+          })));
+        
+        return {
+          course_name: courseGrades[0]?.course?.title || 'Unknown Course',
+          reviews: reviews
+        };
+      })
+    );
+  }
+
+
 }

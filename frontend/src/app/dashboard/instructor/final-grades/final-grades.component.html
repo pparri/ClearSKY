@@ -12,6 +12,8 @@
   </div>
 
   <div *ngIf="selectedCourse" class="upload-section">
+    <label>Semester:</label>
+  <input type="text" [(ngModel)]="manualSemester" placeholder="e.g. Spring 2024-2025" />
     <label class="file-upload">
       <input type="file" (change)="onFileChange($event)" accept=".xlsx" />
       <span>Upload Excel File</span>

@@ -10,8 +10,10 @@ interface Course {
   id: number;
   name: string;
   period: string;
-  initialSubmission: string; // ISO string dal backend
-  finalSubmission: string;   // ISO string dal backend
+  initialDate: string;    
+  finalDate: string;        
+  initialSemester?: string;
+  finalSemester?: string;
 }
 
 @Component({
@@ -76,24 +78,46 @@ export class StudentDashboardComponent implements OnInit {
       this.selectedCourse = null;
       return;
     }
-
+  
     this.selectedCourse = course;
-    // Carica statistiche reali dal backend
-    this.api.getCourseStats(String(course.id)).subscribe({
-      next: (stats) => {
-        this.barChartData = {
-          labels: stats.labels,
-          datasets: [
-            {
-              data: stats.data,
-              label: course.name,
-              backgroundColor: '#3f51b5'
-            }
-          ]
-        };
+    this.loading = true;
+    
+    // Cargar datos reales del estudiante
+    this.api.getStudentGradeDetails(String(course.id)).subscribe({
+      next: (response) => {
+        console.log('📊 Datos del estudiante:', response);
+        
+        const grades = response.grades || [];
+        
+        if (grades.length > 0) {
+          // Crear gráfico con las notas del estudiante
+          const labels = grades.map((g: any) => 
+            `${g.submission_type === 'initial' ? 'Initial' : 'Final'} (${g.semester})`
+          );
+          const data = grades.map((g: any) => g.grade_value || 0);
+          
+          this.barChartData = {
+            labels: labels,
+            datasets: [
+              {
+                data: data,
+                label: `My Grades - ${course.name}`,
+                backgroundColor: '#3f51b5',
+                borderColor: '#3f51b5',
+                borderWidth: 1
+              }
+            ]
+          };
+        } else {
+          this.barChartData = { labels: ['No data'], datasets: [] };
+        }
+        
+        this.loading = false;
       },
-      error: () => {
-        this.barChartData = { labels: [], datasets: [] };
+      error: (error) => {
+        console.error('❌ Error loading student grades:', error);
+        this.barChartData = { labels: ['Error'], datasets: [] };
+        this.loading = false;
       }
     });
   }

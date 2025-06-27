@@ -18,6 +18,7 @@ export class InitialGradesComponent implements OnInit {
   fileName = '';
   parsedHeaders: string[] = [];
   parsedRows: any[][] = [];
+  selectedFile: File | null = null; // Declare the selectedFile property
   message: string | null = null;
   uploadConfirmed = false;
 
@@ -45,8 +46,9 @@ export class InitialGradesComponent implements OnInit {
   onFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length || !this.selectedCourse) return;
-
     const file = input.files[0];
+    this.selectedFile = file; // Save the file to the selectedFile property
+    this.fileName = file.name;
     this.fileName = file.name;
     const reader = new FileReader();
 
@@ -71,10 +73,32 @@ export class InitialGradesComponent implements OnInit {
     reader.readAsArrayBuffer(file);
   }
 
+  manualSemester: string = ''; // Añade esta propiedad
+
+//Semester manual
   confirmUpload(): void {
-    this.uploadConfirmed = true;
-    this.message = '✅ Grades confirmed for upload.';
+  if (!this.manualSemester) {
+    this.message = 'You need the semester.';
+    return;
   }
+  // Aquí tu lógica para subir el archivo, por ejemplo:
+  const formData = new FormData();
+  if (this.selectedFile) {
+    formData.append('file', this.selectedFile); // asegúrate de guardar el archivo en onFileChange
+  } else {
+    this.message = '❌ No file selected.';
+    return;
+  }
+  formData.append('course_name', this.selectedCourse?.name || '');
+  formData.append('semester', this.manualSemester.trim());
+  formData.append('submission_type', 'initial'); // Asegúrate de que este valor sea correcto según tu API
+
+  // Llama a tu servicio para hacer el POST
+  this.api.uploadExcel(formData).subscribe({
+    next: (res) => this.message = '✅ Excel subido correctamente.',
+    error: (err) => this.message = '❌ Error al subir el Excel.'
+  });
+}
 
   cancelUpload(): void {
     this.resetUpload();
@@ -88,4 +112,6 @@ export class InitialGradesComponent implements OnInit {
     this.uploadConfirmed = false;
     this.message = null;
   }
+
+  
 }

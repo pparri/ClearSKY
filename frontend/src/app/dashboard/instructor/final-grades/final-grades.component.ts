@@ -20,6 +20,7 @@ export class FinalGradesComponent implements OnInit {
   parsedRows: any[][] = [];
   message: string | null = null;
   uploadConfirmed = false;
+  selectedFile: File | null = null;
 
   constructor(private api: ApiService) {}
 
@@ -45,8 +46,8 @@ export class FinalGradesComponent implements OnInit {
   onFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length || !this.selectedCourse) return;
-
     const file = input.files[0];
+    this.selectedFile = file;
     this.fileName = file.name;
     const reader = new FileReader();
 
@@ -70,10 +71,28 @@ export class FinalGradesComponent implements OnInit {
 
     reader.readAsArrayBuffer(file);
   }
+  manualSemester: string = '';
 
   confirmUpload(): void {
-    this.uploadConfirmed = true;
-    this.message = '✅ Final grades confirmed for upload.';
+    if (!this.manualSemester) {
+      this.message = 'You need the semester.';
+      return;
+    }
+    const formData = new FormData();
+    if (this.selectedFile) {
+      formData.append('file', this.selectedFile);
+    } else {
+      this.message = '❌ No file selected.';
+      return;
+    }
+    formData.append('course_name', this.selectedCourse?.name || '');
+    formData.append('semester', this.manualSemester.trim());
+    formData.append('submission_type', 'final');
+    
+    this.api.uploadExcel(formData).subscribe({
+      next: () => this.message = '✅ Excel subido correctamente.',
+      error: () => this.message = '❌ Error al subir el Excel.'
+    });
   }
 
   cancelUpload(): void {

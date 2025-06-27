@@ -147,9 +147,11 @@ crear una institucion:
 curl -X POST http://localhost:8000/api/users/login/ \
 -H "Content-Type: application/json" \
 -d '{
-  "username": "axel98",
+  "username": "griego2",
   "password": "secure123"
 }'
+5f79668dc8dead05ea5710b90d410bc72c371643
+
 
 token: 
 b1b1961933a4404a6ff7ee6f247fbbaeed5b0f09
@@ -282,7 +284,7 @@ curl -X POST http://localhost:8000/api/users/login/ \
   "password": "password"
 }'
 
-03c8817e63a21296163af3722f63adc01ed40d77
+d6aa1591987a4222791615e51e0e6633b64fdc9e
 
 ------
 Probar a crear un curso: 
@@ -302,6 +304,19 @@ curl -X POST http://localhost:8000/api/courses/create/ \
       
 
 
+curl -X POST http://localhost:8000/api/courses/create/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Token d6aa1591987a4222791615e51e0e6633b64fdc9e" \
+  -d '{
+        "code": "3204",
+        "title": "PruebaCurso7",
+        "email": "curso4@uni.edu",
+        "password": "password",
+        "institution": 1,
+        "instructors": [3]
+      }'
+id 4
+
 Probar a subir un excel:
 
 
@@ -309,7 +324,7 @@ Probar a subir un excel:
  curl -X POST http://localhost:8000/api/users/register/ \
 -H "Content-Type: application/json" \
 -d '{
-  "username": "griego1",
+  "username": "griego3",
   "email": "el84623@mail.ntua.gr",
   "name": "ΚΑΡΑΓΙΑΝΝΗΣ ΕΛΕΝΗ",
   "password": "secure123",
@@ -319,12 +334,12 @@ Probar a subir un excel:
 curl -X POST http://localhost:8000/api/users/register/ \
   -H "Content-Type: application/json" \
   -d '{
-        "username": "griego1",
-        "email": "el84623@mail.ntua.gr",
-        "name": "ΚΑΡΑΓΙΑΝΝΗΣ ΕΛΕΝΗ",
+        "username": "griego5",
+        "email": "el84621@mail.ntua.gr",
+        "name": "ΒΑΣΙΛΕΙΟΥ ΣΟΦΙΑ",
         "password": "secure123",
         "role": "student",
-        "registration_id": "03184623"
+        "registration_id": "03184621"
       }'
 
 
@@ -376,7 +391,7 @@ curl -X GET http://localhost:8000/api/grades/courses/COURSE_ID/semester/SEMESTER
 # probamos el enpoint de que un estudiante obtenga su propia notas
 
 curl -X GET http://localhost:8000/api/grades/grades/ \
-  -H "Authorization: Token 9ba4a0fa9440e375c8ab1332f875b2b08144113b"
+  -H "Authorization: Token 5f79668dc8dead05ea5710b90d410bc72c371643"
 
 
 curl -X POST http://localhost:8000/api/users/login/ \
@@ -390,16 +405,18 @@ token:
 9ba4a0fa9440e375c8ab1332f875b2b08144113b
 
 
-#dejar una nota como aboerta
+#dejar una nota como aboerta : Ejemplos 12,13,14,15
 
-curl -X PUT http://localhost:8000/api/grades/grades/22/update-state/ \
-  -H "Authorization: Token 03c8817e63a21296163af3722f63adc01ed40d77" \
+curl -X PUT http://localhost:8000/api/grades/grades/20/update-state/ \
+  -H "Authorization: Token d6aa1591987a4222791615e51e0e6633b64fdc9e" \
   -H "Content-Type: application/json" \
   -d '{"state": "OPEN"}'
 
+
+
 #probar a dejar una review (estudiante)
-curl -X POST http://localhost:8000/api/grades/grades/22/request-review/ \
-  -H "Authorization: Token 9ba4a0fa9440e375c8ab1332f875b2b08144113b" \
+curl -X POST http://localhost:8000/api/grades/grades/12/request-review/ \
+  -H "Authorization: Token 5f79668dc8dead05ea5710b90d410bc72c371643" \
   -H "Content-Type: application/json" \
   -d '{
         "reason": "Creo que merezco una mejor calificación en la pregunta Q03 debido a mi explicación detallada."
@@ -408,7 +425,7 @@ curl -X POST http://localhost:8000/api/grades/grades/22/request-review/ \
 #responder una review (profe):
 
 curl -X POST http://localhost:8000/api/grades/reviews/2/respond/ \
-  -H "Authorization: Token 03c8817e63a21296163af3722f63adc01ed40d77" \
+  -H "Authorization: Token d6aa1591987a4222791615e51e0e6633b64fdc9e" \
   -H "Content-Type: application/json" \
   -d '{
         "response": "Hemos revisado tu solicitud. La calificación se mantiene ya que la explicación fue insuficiente para los puntos máximos."
@@ -417,7 +434,7 @@ curl -X POST http://localhost:8000/api/grades/reviews/2/respond/ \
 #obtener info reviews (profe)
 
 curl -X GET http://localhost:8000/api/grades/reviews/ \
-  -H "Authorization: Token 03c8817e63a21296163af3722f63adc01ed40d77"
+  -H "Authorization: Token d6aa1591987a4222791615e51e0e6633b64fdc9e"
 
 
 #obtener info de las notas estudiante:
@@ -434,7 +451,7 @@ curl -X GET http://localhost:8000/api/grades/grades/ \
 curl -X POST http://192.168.1.105:8000/api/users/login/ \
 -H "Content-Type: application/json" \
 -d '{
-  "username": "griego1",
+  "username": "griego2",
   "password": "secure123"
 }'
 
@@ -448,3 +465,12 @@ ng serve --open
 backend
 
 python3 manage.py runserver 0.0.0.0:8000
+
+sudo lsof -i :8000
+sudo lsof -i :4200
+
+sudo kill -9 PID
+
+
+
+backend endpoint --> frontend: api service --> componente
