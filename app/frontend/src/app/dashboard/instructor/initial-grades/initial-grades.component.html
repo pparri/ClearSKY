@@ -1,0 +1,46 @@
+<div class="initial-container">
+  <h2>📘 Post Initial Grades</h2>
+
+  <div class="course-select">
+    <label>Select Course:</label>
+    <select [(ngModel)]="selectedCourse" (change)="onCourseSelect()">
+      <option [ngValue]="null">-- Choose a course --</option>
+      <option *ngFor="let c of courses" [ngValue]="c">
+        {{ c.name }} ({{ c.period }})
+      </option>
+    </select>
+  </div>
+
+  <div *ngIf="selectedCourse" class="upload-section">
+    <label>Semester:</label>
+    <input type="text" [(ngModel)]="manualSemester" placeholder="e.g. Spring 2024-2025" />
+    <label class="file-upload">
+      <input type="file" (change)="onFileChange($event)" accept=".xlsx" />
+      <span>Upload Excel File</span>
+    </label>
+    <p *ngIf="fileName">📄 {{ fileName }}</p>
+  </div>
+
+  <div *ngIf="parsedRows.length > 0" class="preview-table">
+    <h3>Preview Grades</h3>
+    <table>
+      <thead>
+        <tr>
+          <th *ngFor="let h of parsedHeaders">{{ h }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of parsedRows">
+          <td *ngFor="let cell of row">{{ cell }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="action-buttons">
+      <button class="confirm" (click)="confirmUpload()">✅ Confirm Upload</button>
+      <button class="cancel" (click)="cancelUpload()">❌ Cancel</button>
+    </div>
+  </div>
+
+  <p class="status-message" *ngIf="message">{{ message }}</p>
+</div>

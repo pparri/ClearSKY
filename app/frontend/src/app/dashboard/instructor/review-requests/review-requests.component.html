@@ -1,0 +1,45 @@
+<div class="review-requests">
+  <h2>Student Review Requests</h2>
+
+  <div class="table-card">
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Course</th>
+          <th>Period</th>
+          <th>Student</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let req of reviewRequests">
+          <td>{{ req.course }}</td>
+          <td>{{ req.period }}</td>
+          <td>{{ req.student }}</td>
+          <td>
+            <button class="btn-outline" (click)="selectReview(req)">Reply</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="selectedReview" class="reply-box">
+    <h3>Reply to {{ selectedReview.student }}</h3>
+    <p><strong>Course:</strong> {{ selectedReview.course }} ({{ selectedReview.period }})</p>
+    <p><strong>Message:</strong> "{{ selectedReview.studentMessage }}"</p>
+
+    <label>Decision:</label>
+    <select [(ngModel)]="instructorDecision">
+      <option value="Accepted">Accepted</option>
+      <option value="Rejected">Rejected</option>
+    </select>
+
+    <textarea
+      [(ngModel)]="instructorReply"
+      rows="4"
+      placeholder="Write your reply..."></textarea>
+
+    <button class="btn-primary" (click)="submitReply()">Send Reply</button>
+  </div>
+</div>
