@@ -1,0 +1,89 @@
+.user-management-card {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 2rem;
+  border-radius: 12px;
+  background: #f9f9fb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  h2 {
+    text-align: center;
+    color: #3f51b5;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      color: #333;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+
+      &:focus {
+        outline: none;
+        border-color: #3f51b5;
+        box-shadow: 0 0 3px rgba(63, 81, 181, 0.4);
+      }
+    }
+  }
+
+  .button-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.25rem;
+
+    .btn {
+      flex: 1;
+      padding: 0.6rem 1rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+
+      &.light {
+        background-color: #c5cae9;
+        color: #000;
+
+        &:hover {
+          background-color: #9fa8da;
+        }
+      }
+
+      &.primary {
+        background-color: #3f51b5;
+        color: #fff;
+
+        &:hover {
+          background-color: #303f9f;
+        }
+      }
+    }
+  }
+
+  .message {
+    margin-top: 1rem;
+    font-weight: bold;
+    text-align: center;
+
+    &.success {
+      color: green;
+    }
+
+    &.error {
+      color: crimson;
+    }
+  }
+}

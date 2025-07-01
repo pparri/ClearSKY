@@ -1,0 +1,66 @@
+
+:root {
+    --primary-color: #6b21a8;
+    --secondary-color: #9b87f5;
+    --background-color: #f4f4f4;
+    --text-color: #333;
+  }
+  
+  body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  .login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--background-color);
+  }
+  
+  .login-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    width: 100%;
+    max-width: 400px;
+  }
+  
+  .form-control {
+    margin-bottom: 1rem;
+  }
+  
+  .btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+  
+  .btn-primary:hover {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+  }
+  
+  /* Responsività */
+  @media (max-width: 576px) {
+    .login-card {
+      width: 90%;
+      padding: 1rem;
+    }
+  }
+  
+  /* Animazioni */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.5s ease-in;
+  }
+  
