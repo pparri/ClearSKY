@@ -1,0 +1,139 @@
+<div class="courses-wrapper">
+  <h2>My Courses</h2>
+
+  <!-- ✅ AÑADIR ESTADOS DE CARGA -->
+  <div *ngIf="loading" class="loading-message">
+    🔄 Loading your courses...
+  </div>
+
+  <div *ngIf="error && !loading" class="error-message">
+    ❌ {{ error }}
+    <button (click)="loadStudentCourses()">🔄 Try Again</button>
+  </div>
+
+  <!-- ✅ SOLO MOSTRAR TABLA SI HAY CURSOS Y NO HAY LOADING -->
+  <table class="course-table" *ngIf="courses.length > 0 && !loading && !error">
+    <thead>
+      <tr>
+        <th>Course</th>
+        <th>Period</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let c of courses">
+        <td>{{ c.name }}</td>
+        <td>{{ c.period }}</td>
+        <td>
+          <span class="status-badge" [ngClass]="{
+            'status-open': c.gradeState === 'OPEN',
+            'status-closed': c.gradeState === 'CLOSED',
+            'status-final': c.gradeState === 'FINAL'
+          }">
+            {{ getGradeStatusText(c.gradeState) }}
+          </span>
+        </td>
+        <td>
+            <button (click)="viewGrades(c)">View My Grades</button>
+            <button 
+            [disabled]="!c.canRequestReview || c.hasRequestedReview" 
+            (click)="showReviewForm(c)"
+            [title]="getReviewButtonTitle(c)">
+            Ask for Review
+          </button>          
+
+        <button 
+          [disabled]="!c.hasRequestedReview" 
+          (click)="viewReviewStatus(c)"
+          [title]="c.hasRequestedReview ? 'View your review status' : 'No review requests made yet'">
+          View Review Status
+        </button>
+      </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ✅ AÑADIR ESTADO VACÍO -->
+  <div *ngIf="courses.length === 0 && !loading && !error" class="empty-state">
+    📚 No courses found. You haven't been enrolled in any courses yet.
+  </div>
+</div>
+
+<div class="result-section" *ngIf="selectedCourse && selectedView === 'grades'">
+  <h3>{{ selectedCourse.name }} – Grade Statistics</h3>
+  <canvas baseChart
+          [data]="barChartData"
+          [options]="barChartOptions"
+          [type]="barChartType">
+  </canvas>
+  <p class="grade-msg">
+    Your grade is {{ selectedCourse.grade }}.
+    <span *ngIf="selectedCourse.grade >= 5">🎉 Congratulations! You passed the exam.</span>
+    <span *ngIf="selectedCourse.grade < 5">💡 You didn’t pass the exam. Don’t worry, you will for sure!</span>
+  </p>
+</div>
+
+<div class="review-section" *ngIf="selectedCourse && selectedView === 'review'">
+  <h3>Review Request – {{ selectedCourse.name }}</h3>
+  <textarea [(ngModel)]="reviewMessage" rows="4" placeholder="Write your review message..."></textarea>
+  <button (click)="sendReview(selectedCourse)">Submit Review Request</button>
+</div>
+
+<div class="status-section" *ngIf="selectedCourse && selectedView === 'status'">
+  <h3>Review Status – {{ selectedCourse.name }}</h3>
+  
+  <!-- ✅ MOSTRAR LOADING MIENTRAS CARGA -->
+  <div *ngIf="loading" class="loading-message">
+    🔄 Loading review status...
+  </div>
+  
+  <!-- ✅ MOSTRAR TODAS LAS REVIEWS -->
+  <div *ngIf="!loading && selectedCourse.reviews && selectedCourse.reviews.length > 0">
+    <div *ngFor="let review of selectedCourse.reviews; let i = index" class="review-item">
+      <h4>Review Request #{{ i + 1 }}</h4>
+      
+      <div class="review-details">
+        <p><strong>📅 Submitted:</strong> {{ review.submitted_at | date:'medium' }}</p>
+        <p><strong>📝 Semester:</strong> {{ review.semester }}</p>
+        <p><strong>📊 Submission Type:</strong> {{ review.submission_type }}</p>
+        
+        <div class="review-message">
+          <p><strong>💬 Your message:</strong></p>
+          <div class="message-box">{{ review.reason }}</div>
+        </div>
+        
+        <div class="review-status">
+          <p><strong>📋 Status:</strong> 
+            <span class="status-badge" [ngClass]="{
+              'status-pending': review.status === 'Pending',
+              'status-accepted': review.status === 'Responded' || review.response,
+              'status-rejected': review.status === 'Rejected'
+            }">
+              {{ review.response ? 'Responded' : 'Pending' }}
+            </span>
+          </p>
+        </div>
+        
+        <div *ngIf="review.response" class="instructor-response">
+          <p><strong>👨‍🏫 Instructor reply:</strong></p>
+          <div class="response-box">{{ review.response }}</div>
+          <p *ngIf="review.responded_at"><small>Responded on: {{ review.responded_at | date:'medium' }}</small></p>
+        </div>
+        
+        <div *ngIf="!review.response" class="no-response">
+          <p class="pending-message">⏳ Waiting for instructor response...</p>
+        </div>
+      </div>
+      
+      <hr *ngIf="i < selectedCourse.reviews.length - 1">
+    </div>
+  </div>
+  
+  <!-- ✅ MOSTRAR MENSAJE SI NO HAY REVIEWS -->
+  <div *ngIf="!loading && (!selectedCourse.reviews || selectedCourse.reviews.length === 0)" class="no-reviews">
+    <p>📝 You haven't made any review requests for this course yet.</p>
+  </div>
+</div>
+
+<p *ngIf="submittedMessage" class="success-msg">{{ submittedMessage }}</p>
