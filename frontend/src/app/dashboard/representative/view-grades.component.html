@@ -1,0 +1,52 @@
+<div class="grades-container">
+  <h2>📊 View Grades</h2>
+
+  <div class="filter-bar">
+    <label for="institution">Institution:</label>
+    <select id="institution" [(ngModel)]="selectedInstitution">
+      <option value="">-- Select --</option>
+      <option *ngFor="let inst of institutions" [value]="inst">{{ inst }}</option>
+    </select>
+    <button (click)="searchCourses()">Search</button>
+  </div>
+
+  <div *ngIf="courses.length === 0 && searchAttempted" class="no-courses">
+    ❌ No courses found for selected institution.
+  </div>
+
+  <div *ngIf="courses.length > 0" class="course-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Course</th>
+          <th>Period</th>
+          <th>Initial Date</th>
+          <th>Final Date</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of courses">
+          <td>{{ c.name }}</td>
+          <td>{{ c.period }}</td>
+          <td>{{ c.initialDate || 'Not submitted' }}</td>
+          <td>{{ c.finalDate || 'Not submitted' }}</td>
+          <td>
+            <button (click)="toggleChart(c)">
+              {{ selectedCourse === c ? 'Hide Chart' : 'View Chart' }}
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="selectedCourse" class="chart-area">
+    <h3>{{ selectedCourse.name }} – Statistics</h3>
+    <canvas baseChart
+            [type]="'bar'"
+            [data]="barChartData"
+            [options]="barChartOptions">
+    </canvas>
+  </div>
+</div>

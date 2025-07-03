@@ -1,0 +1,13 @@
+<div class="purchase-card">
+    <h2>Purchase Credits</h2>
+    <form (ngSubmit)="purchase()">
+      <label>
+        Select amount:
+        <input type="number" [(ngModel)]="selectedAmount" name="amount" min="1" />
+      </label>
+      <button type="submit">Purchase</button>
+    </form>
+    <div class="message" *ngIf="message">
+      {{ message }}
+    </div>
+  </div>
