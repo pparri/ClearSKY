@@ -297,7 +297,7 @@ curl -X POST http://localhost:8000/api/courses/create/ \
         "email": "curso@uni.edu",
         "password": "password",
         "institution": 1,
-        "instructors": [5]
+        "instructors": [1]
       }'
 
       {"id":1,"code":"3205","title":"ΒΑΘΜΟΛΟΓΙΟ ΤΕΧΝΟΛΟΓΙΑ ΛΟΓΙΣΜΙΚΟΥ","email":"curso@uni.edu","institution":1,"instructors":[5]}
@@ -334,13 +334,25 @@ Probar a subir un excel:
 curl -X POST http://localhost:8000/api/users/register/ \
   -H "Content-Type: application/json" \
   -d '{
-        "username": "griego5",
-        "email": "el84621@mail.ntua.gr",
-        "name": "ΒΑΣΙΛΕΙΟΥ ΣΟΦΙΑ",
+        "username": "griego1",
+        "email": "el84623@mail.ntua.gr",
+        "name": "ΚΑΡΑΓΙΑΝΝΗΣ ΕΛΕΝΗ",
         "password": "secure123",
         "role": "student",
-        "registration_id": "03184621"
+        "registration_id": "03184623"
       }'
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   curl -X POST http://localhost:8000/api/grades/upload-excel/ \
@@ -474,3 +486,161 @@ sudo kill -9 PID
 
 
 backend endpoint --> frontend: api service --> componente
+
+
+PRESENTATION
+------------------
+# 1. Conectar como superusuario de PostgreSQL
+sudo -u postgres psql
+
+# 2. Eliminar y recrear la base de datos con permisos correctos
+DROP DATABASE IF EXISTS clearsky;
+CREATE DATABASE clearsky;
+
+# 3. Otorgar permisos completos al usuario clearsky
+GRANT ALL PRIVILEGES ON DATABASE clearsky TO clearsky;
+
+# 4. Conectar a la base de datos clearsky
+\c clearsky
+
+# 5. Otorgar permisos sobre el esquema public
+GRANT ALL ON SCHEMA public TO clearsky;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO clearsky;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO clearsky;
+
+# 6. Hacer al usuario propietario del esquema (IMPORTANTE)
+ALTER SCHEMA public OWNER TO clearsky;
+
+# 7. Salir de PostgreSQL
+\q
+
+Probablemente haga falta aplicar migraciones:
+
+python3 manage.py makemigrations
+python3 manage.py migrate
+
+
+CREATE users
+
+
+
+curl -X POST http://localhost:8000/api/users/register/ \
+  -H "Content-Type: application/json" \
+  -d '{
+        "username": "griego1",
+        "email": "el84623@mail.ntua.gr",
+        "name": "ΚΑΡΑΓΙΑΝΝΗΣ ΕΛΕΝΗ",
+        "password": "secure123",
+        "role": "student",
+        "registration_id": "03184623"
+      }'
+
+
+
+curl -X POST http://localhost:8000/api/users/register/ \
+  -H "Content-Type: application/json" \
+  -d '{
+        "username": "griego2",
+        "email": "el84610@mail.ntua.gr",
+        "name": "ΝΙΚΟΛΑΪΔΗΣ ΧΡΙΣΤΙΝΑ",
+        "password": "secure123",
+        "role": "student",
+        "registration_id": "03184610"
+      }'
+
+
+
+curl -X POST http://localhost:8000/api/users/register/ \
+  -H "Content-Type: application/json" \
+  -d '{
+        "username": "griego3",
+        "email": "el84620@mail.ntua.gr",
+        "name": "ΑΛΕΞΑΝΔΡΟΥ ΠΑΝΑΓΙΩΤΗΣ",
+        "password": "secure123",
+        "role": "student",
+        "registration_id": "03184620"
+      }'
+
+
+
+
+curl -X POST http://localhost:8000/api/users/register/ \
+  -H "Content-Type: application/json" \
+  -d '{
+        "username": "griego4",
+        "email": "el84621@mail.ntua.gr",
+        "name": "ΒΑΣΙΛΕΙΟΥ ΣΟΦΙΑ",
+        "password": "secure123",
+        "role": "student",
+        "registration_id": "03184621"
+      }'
+
+#representative
+
+ curl -X POST http://localhost:8000/api/users/register/ \
+-H "Content-Type: application/json" \
+-d '{
+  "username": "axel98",
+  "email": "axel@uni.edu",
+  "name": "Axel Gonzalez",
+  "password": "secure123",
+  "role": "representative"
+}'
+
+
+curl -X POST http://localhost:8000/api/users/login/ \
+-H "Content-Type: application/json" \
+-d '{
+  "username": "axel98",
+  "password": "secure123"
+}'
+
+curl -X POST http://localhost:8000/api/institutions/create/ \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Token 9fc0bdfe1e17adf0600841a0251b9032020022d9" \
+     -d '{
+           "name": "Universitat Politècnica de Valencia",
+           "email": "contacto@upc.edu",
+           "representatives":[5]
+         }'
+
+
+#instructor
+
+   curl -X POST http://localhost:8000/api/users/register/ \
+-H "Content-Type: application/json" \
+-d '{
+  "username": "profe1",
+  "email": "profe1@uni.edu",
+  "name": "Profe",
+  "password": "password",
+  "role": "instructor"
+}'
+
+curl -X POST http://localhost:8000/api/users/login/ \
+-H "Content-Type: application/json" \
+-d '{
+  "username": "profe1",
+  "password": "password"
+}'
+
+id = 6
+
+
+Probar a crear un curso: 
+
+
+curl -X POST http://localhost:8000/api/courses/create/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Token 3ca527da1f9c65e4582a86bc9d9e7d4f03f5409f" \
+  -d '{
+        "code": "3304",
+        "title": "Maths",
+        "email": "curso@uni.edu",
+        "password": "password",
+        "institution": 1,
+        "instructors": [6]
+      }'
+
+
+* Necesitamos que los usuarios esten en la base de datos para subir notas para que haya la relacion entre el registration id y la nota del excel

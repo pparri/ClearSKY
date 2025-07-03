@@ -370,97 +370,114 @@ class CourseGradeStatisticsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, course_pk, semester_name):
-        # Verificar si el usuario es un instructor
-        if request.user.role != 'instructor':
-            return Response({'error': 'Acceso denegado. Solo para instructores.'}, status=status.HTTP_403_FORBIDDEN)
+       # Permitir acceso a instructores o estudiantes matriculados
+        course = get_object_or_404(Course, pk=course_pk)  # Retrieve the course object
+        if request.user.role == 'instructor':
+            if not course.instructors.filter(pk=request.user.pk).exists():
+                return Response({'error': 'No está autorizado para ver las estadísticas de este curso.'}, status=status.HTTP_403_FORBIDDEN)
+        elif request.user.role == 'student':
+            # Verifica que el estudiante tenga alguna nota en ese curso y semestre
+            if not GradeAssignment.objects.filter(course=course, student=request.user, semester=semester_name).exists():
+                return Response({'error': 'No está autorizado para ver las estadísticas de este curso.'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            return Response({'error': 'Acceso denegado.'}, status=status.HTTP_403_FORBIDDEN)
 
-        # Obtener el curso
-        course = get_object_or_404(Course, pk=course_pk)
-
-        # Verificar si el instructor está asociado a este curso
-        if not course.instructors.filter(pk=request.user.pk).exists():
-            return Response({'error': 'No está autorizado para ver las estadísticas de este curso.'}, status=status.HTTP_403_FORBIDDEN)
-
-        # Obtener todas las asignaciones de calificaciones para este curso y semestre
-        # Prefetch question_grades para optimizar
-        grade_assignments = GradeAssignment.objects.filter(
+        # Separar por tipo de submission
+        initial_grades = GradeAssignment.objects.filter(
             course=course,
-            semester=semester_name
+            semester=semester_name,
+            submission_type='initial'
         ).prefetch_related('question_grades')
 
-        if not grade_assignments.exists():
+        final_grades = GradeAssignment.objects.filter(
+            course=course,
+            semester=semester_name,
+            submission_type='final'
+        ).prefetch_related('question_grades')
+
+        if not initial_grades.exists() and not final_grades.exists():
             return Response({
                 "course_title": course.title,
                 "semester": semester_name,
                 "message": "No se encontraron calificaciones para este curso y semestre.",
-                "general_grades_plot_data": {"labels": [], "values": []},
+                "general_grades_plot_data": {"initial": {"labels": [], "values": []}, "final": {"labels": [], "values": []}},
                 "question_grades_plot_data": {}
             }, status=status.HTTP_200_OK)
 
-        # 1. Preparar datos para el plot de notas generales
-        general_grades_values = [ga.grade_value for ga in grade_assignments if ga.grade_value is not None]
-        if general_grades_values:
-            # Contar frecuencia de cada nota (redondeada al entero más cercano para simplicidad del histograma)
-            general_grades_counts = Counter(int(round(g)) for g in general_grades_values)
-            # Asegurar que todas las posibles notas de 0 a 10 estén presentes en labels si se desea un eje completo
-            # Esto es opcional y depende de cómo el frontend maneje los datos
-            # labels_general = sorted(general_grades_counts.keys())
-            # values_general = [general_grades_counts[k] for k in labels_general]
-            labels_general = list(range(11)) # 0 a 10
-            values_general = [general_grades_counts.get(i, 0) for i in labels_general]
+        # Función helper para procesar datos de gráfico
+        def process_grade_data(grade_assignments, submission_type):
+            grades_values = [ga.grade_value for ga in grade_assignments if ga.grade_value is not None]
+            if grades_values:
+                grades_counts = Counter(int(round(g)) for g in grades_values)
+                labels = list(range(11))  # 0 a 10
+                values = [grades_counts.get(i, 0) for i in labels]
+                return {
+                    "labels": labels,
+                    "values": values,
+                    "raw_data": grades_values,
+                    "submission_type": submission_type,
+                    "count": len(grades_values)
+                }
+            else:
+                return {"labels": [], "values": [], "raw_data": [], "submission_type": submission_type, "count": 0}
 
-            general_plot_data = {
-                "labels": labels_general,
-                "values": values_general,
-                "raw_data": general_grades_values # Opcional: enviar datos crudos también
-            }
-        else:
-            general_plot_data = {"labels": [], "values": [], "raw_data": []}
+        # Procesar datos generales
+        initial_plot_data = process_grade_data(initial_grades, 'initial')
+        final_plot_data = process_grade_data(final_grades, 'final')
 
+        general_plot_data = {
+            "initial": initial_plot_data,
+            "final": final_plot_data
+        }
 
-        # 2. Preparar datos para los plots de notas por pregunta
+        # Procesar datos por pregunta
         question_grades_plot_data = {}
         
-        # Obtener todos los números de pregunta únicos para estos assignments
-        # Esto evita iterar innecesariamente si algunas preguntas no tienen notas
+        # Obtener números de pregunta únicos de ambos tipos
+        all_grades = list(initial_grades) + list(final_grades)
         distinct_question_numbers = sorted(list(
-            QuestionGrade.objects.filter(grade_assignment__in=grade_assignments)
+            QuestionGrade.objects.filter(grade_assignment__in=all_grades)
             .values_list('question_number', flat=True)
             .distinct()
         ))
 
         for q_num in distinct_question_numbers:
-            q_grades_values = []
-            for ga in grade_assignments:
-                for qg in ga.question_grades.all(): # .all() aquí usa los datos prefetched
+            # Procesar notas iniciales para esta pregunta
+            initial_q_values = []
+            for ga in initial_grades:
+                for qg in ga.question_grades.all():
                     if qg.question_number == q_num and qg.value is not None:
-                        q_grades_values.append(qg.value)
-            
-            if q_grades_values:
-                q_grades_counts = Counter(int(round(g)) for g in q_grades_values)
-                # labels_q = sorted(q_grades_counts.keys())
-                # values_q = [q_grades_counts[k] for k in labels_q]
-                labels_q = list(range(11)) # 0 a 10
-                values_q = [q_grades_counts.get(i, 0) for i in labels_q]
+                        initial_q_values.append(qg.value)
 
-                question_grades_plot_data[q_num] = {
-                    "labels": labels_q,
-                    "values": values_q,
-                    "raw_data": q_grades_values # Opcional
-                }
-            else:
-                # Si una pregunta (ej. Q05) no tiene notas en ningún assignment,
-                # puedes omitirla o enviarla con datos vacíos.
-                question_grades_plot_data[q_num] = {"labels": [], "values": [], "raw_data": []}
+            # Procesar notas finales para esta pregunta
+            final_q_values = []
+            for ga in final_grades:
+                for qg in ga.question_grades.all():
+                    if qg.question_number == q_num and qg.value is not None:
+                        final_q_values.append(qg.value)
 
+            # Crear datos para gráfico de esta pregunta
+            def create_question_data(values, sub_type):
+                if values:
+                    counts = Counter(int(round(g)) for g in values)
+                    labels = list(range(11))
+                    plot_values = [counts.get(i, 0) for i in labels]
+                    return {"labels": labels, "values": plot_values, "raw_data": values, "submission_type": sub_type}
+                else:
+                    return {"labels": [], "values": [], "raw_data": [], "submission_type": sub_type}
+
+            question_grades_plot_data[q_num] = {
+                "initial": create_question_data(initial_q_values, 'initial'),
+                "final": create_question_data(final_q_values, 'final')
+            }
 
         return Response({
             "course_title": course.title,
             "semester": semester_name,
-            "student_count": grade_assignments.values('student').distinct().count(),
+            "initial_student_count": initial_grades.values('student').distinct().count(),
+            "final_student_count": final_grades.values('student').distinct().count(),
             "general_grades_plot_data": general_plot_data,
-            "question_grades_plot_data": question_grades_plot_data,
-            "debug_raw_grades": [ga.grade_value for ga in grade_assignments if ga.grade_value is not None]
+            "question_grades_plot_data": question_grades_plot_data
         }, status=status.HTTP_200_OK)
 
 #----------------------------------------Student Endpoints---------------------------------

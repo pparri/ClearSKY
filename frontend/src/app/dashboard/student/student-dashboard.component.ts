@@ -5,6 +5,9 @@ import { NgChartsModule } from 'ng2-charts';
 import { ChartConfiguration, ChartOptions } from 'chart.js';
 import { AuthService, User } from '../../auth/auth.service';
 import { ApiService } from '../../services/api.service';
+import { FormsModule } from '@angular/forms';
+
+
 
 interface Course {
   id: number;
@@ -14,15 +17,18 @@ interface Course {
   finalDate: string;        
   initialSemester?: string;
   finalSemester?: string;
+  semesters?: string[]; // Added property
 }
 
 @Component({
   selector: 'app-student-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, NgChartsModule],
+  imports: [CommonModule, RouterModule, NgChartsModule, FormsModule],
   templateUrl: './student-dashboard.component.html',
   styleUrls: ['./student-dashboard.component.scss']
 })
+
+
 export class StudentDashboardComponent implements OnInit {
   user: User | null = null;
   courses: Course[] = [];
@@ -73,49 +79,73 @@ export class StudentDashboardComponent implements OnInit {
     });
   }
 
-  selectCourse(course: Course): void {
-    if (this.selectedCourse === course) {
-      this.selectedCourse = null;
-      return;
-    }
+
+  selectedSemester: string | null = null;
+
+selectCourse(course: Course, semesterOverride?: string): void {
+  if (this.selectedCourse === course && !semesterOverride) {
+    this.selectedCourse = null;
+    return;
+  }
+
+  this.selectedCourse = course;
+  this.selectedSemester = semesterOverride || (course.semesters ? course.semesters[0] : course.period);
+  this.loading = true;
+
+  const semester = this.selectedSemester || course.period || course.initialSemester || course.finalSemester || 'default-semester';
+  this.api.getCourseGradeStatistics(String(course.id), semester).subscribe({
+      next: (data) => {
+        // Gráfico general
+        this.barChartData = {
+          labels: Array.from({ length: 11 }, (_, i) => i.toString()),
+          datasets: [
+            {
+              label: `Initial Marks (${data.initial_student_count || 0} Students)`,
+              data: data.general_grades_plot_data.initial?.values || [],
+              backgroundColor: '#007bff',
+              borderColor: '#007bff',
+              borderWidth: 1
+            },
+            {
+              label: `Final Marks (${data.final_student_count || 0} Students)`,
+              data: data.general_grades_plot_data.final?.values || [],
+              backgroundColor: '#dc3545',
+              borderColor: '#dc3545',
+              borderWidth: 1
+            }
+          ]
+        };
   
-    this.selectedCourse = course;
-    this.loading = true;
-    
-    // Cargar datos reales del estudiante
-    this.api.getStudentGradeDetails(String(course.id)).subscribe({
-      next: (response) => {
-        console.log('📊 Datos del estudiante:', response);
-        
-        const grades = response.grades || [];
-        
-        if (grades.length > 0) {
-          // Crear gráfico con las notas del estudiante
-          const labels = grades.map((g: any) => 
-            `${g.submission_type === 'initial' ? 'Initial' : 'Final'} (${g.semester})`
-          );
-          const data = grades.map((g: any) => g.grade_value || 0);
-          
-          this.barChartData = {
-            labels: labels,
-            datasets: [
-              {
-                data: data,
-                label: `My Grades - ${course.name}`,
-                backgroundColor: '#3f51b5',
-                borderColor: '#3f51b5',
-                borderWidth: 1
-              }
-            ]
-          };
-        } else {
-          this.barChartData = { labels: ['No data'], datasets: [] };
+        // Gráficos por pregunta
+        this.questionCharts = {};
+        if (data.question_grades_plot_data) {
+          Object.keys(data.question_grades_plot_data).forEach(questionNum => {
+            const questionData = data.question_grades_plot_data[questionNum];
+            this.questionCharts[questionNum] = {
+              labels: Array.from({ length: 11 }, (_, i) => i.toString()),
+              datasets: [
+                {
+                  label: 'Inicial',
+                  data: questionData.initial?.values || [],
+                  backgroundColor: '#007bff',
+                  borderColor: '#007bff',
+                  borderWidth: 1
+                },
+                {
+                  label: 'Final',
+                  data: questionData.final?.values || [],
+                  backgroundColor: '#dc3545',
+                  borderColor: '#dc3545',
+                  borderWidth: 1
+                }
+              ]
+            };
+          });
         }
-        
+  
         this.loading = false;
       },
       error: (error) => {
-        console.error('❌ Error loading student grades:', error);
         this.barChartData = { labels: ['Error'], datasets: [] };
         this.loading = false;
       }
@@ -132,5 +162,24 @@ export class StudentDashboardComponent implements OnInit {
     // Replace with your actual formatting logic.
     return new Intl.DateTimeFormat('es-ES').format(new Date(date));
   }
+
+  public questionCharts: { [key: string]: ChartConfiguration<'bar'>['data'] } = {};
+  public questionChartOptions: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: true, position: 'top' },
+      title: { display: true, font: { size: 12 } }
+    },
+    scales: {
+      y: { 
+        beginAtZero: true, 
+        ticks: { precision: 0 }
+      }
+    }
+  };
+
+
+
 }
 

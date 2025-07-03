@@ -66,31 +66,32 @@ def delete_course(request, course_id):
     except Course.DoesNotExist:
         return Response({'error': 'Course not found'}, status=404)
     
-
-
 @api_view(['GET'])
 def course_statistics(request):
     courses = Course.objects.all()
     data = []
     for course in courses:
-        # Última submission inicial
-        initial_grade = GradeAssignment.objects.filter(
-            course=course, submission_type='initial'
-        ).order_by('-timestamp').first()
-        # Última submission final
-        final_grade = GradeAssignment.objects.filter(
-            course=course, submission_type='final'
-        ).order_by('-timestamp').first()
+        # Obtener todos los semestres con notas para este curso
+        semesters = GradeAssignment.objects.filter(course=course).values_list('semester', flat=True).distinct()
+        for semester in semesters:
+            # Última submission inicial para este semestre
+            initial_grade = GradeAssignment.objects.filter(
+                course=course, semester=semester, submission_type='initial'
+            ).order_by('-timestamp').first()
+            # Última submission final para este semestre
+            final_grade = GradeAssignment.objects.filter(
+                course=course, semester=semester, submission_type='final'
+            ).order_by('-timestamp').first()
 
-        data.append({
-            'id': course.id,  
-            'name': course.title,
-            'period': initial_grade.semester if initial_grade else (final_grade.semester if final_grade else None),
-            'initialDate': initial_grade.timestamp.isoformat() if initial_grade else None,
-            'finalDate': final_grade.timestamp.isoformat() if final_grade else None,
-            'initialSemester': initial_grade.semester if initial_grade else None,
-            'finalSemester': final_grade.semester if final_grade else None,
-        })
+            data.append({
+                'id': course.id,
+                'name': course.title,
+                'period': semester,
+                'initialDate': initial_grade.timestamp.isoformat() if initial_grade else None,
+                'finalDate': final_grade.timestamp.isoformat() if final_grade else None,
+                'initialSemester': initial_grade.semester if initial_grade else None,
+                'finalSemester': final_grade.semester if final_grade else None,
+            })
     return Response(data)
 
 
@@ -99,71 +100,53 @@ def course_statistics(request):
 # En course/views.py - CORREGIR el método student_courses
 @api_view(['GET'])
 def student_courses(request):
-    """Vista para que estudiantes vean sus cursos (basado en sus notas)"""
-    
     if request.user.role != 'student':
         return Response({'error': 'Solo estudiantes pueden acceder'}, status=403)
-    
+
     from grades.models import GradeAssignment, ReviewRequest
-    
-    # ✅ USAR select_related y prefetch_related para optimizar
+
     student_grades = GradeAssignment.objects.filter(
         student=request.user
     ).select_related('course').prefetch_related('review_requests')
-    
-    # Agrupar por curso
-    courses_dict = {}
-    for grade in student_grades:
-        course_id = grade.course.id
-        if course_id not in courses_dict:
-            courses_dict[course_id] = {
-                'id': course_id,
-                'title': grade.course.title,
-                'code': grade.course.code or '',
-                'semesters': set(),
-                'initial_date': None,
-                'final_date': None,
-                'latest_semester': None,
-                'latest_state': 'CLOSED',
-                'has_reviews': False  # ✅ NUEVO CAMPO
-            }
-        
-        # Actualizar información del curso
-        courses_dict[course_id]['semesters'].add(grade.semester)
-        
-        if not courses_dict[course_id]['latest_semester'] or grade.semester > courses_dict[course_id]['latest_semester']:
-            courses_dict[course_id]['latest_semester'] = grade.semester
-            courses_dict[course_id]['latest_state'] = grade.state
 
+    # Agrupar por curso+semestre
+    courses_semesters = {}
+    for grade in student_grades:
+        key = (grade.course.id, grade.semester)
+        if key not in courses_semesters:
+            courses_semesters[key] = {
+                'id': grade.course.id,
+                'name': f"{grade.course.code} - {grade.course.title}" if grade.course.code else grade.course.title,
+                'period': grade.semester,
+                'semesters': [],  # No necesario aquí, pero puedes incluir todos los semestres si quieres
+                'initialDate': None,
+                'finalDate': None,
+                'gradeState': grade.state,
+                'canRequestReview': False,
+                'hasRequestedReview': False
+            }
+        # Actualizar fechas
         if grade.submission_type == 'initial':
-            if not courses_dict[course_id]['initial_date'] or grade.timestamp > courses_dict[course_id]['initial_date']:
-                courses_dict[course_id]['initial_date'] = grade.timestamp
-                
+            if not courses_semesters[key]['initialDate'] or grade.timestamp > courses_semesters[key]['initialDate']:
+                courses_semesters[key]['initialDate'] = grade.timestamp
         elif grade.submission_type == 'final':
-            if not courses_dict[course_id]['final_date'] or grade.timestamp > courses_dict[course_id]['final_date']:
-                courses_dict[course_id]['final_date'] = grade.timestamp
-    
-    # ✅ VERIFICAR REVIEWS PARA CADA CURSO DE FORMA MÁS EFICIENTE
-    courses_data = []
-    for course_data in courses_dict.values():
-        course_id = course_data['id']
-        latest_state = course_data['latest_state']
-        
-        # Verificar si existe alguna review para este curso del estudiante
+            if not courses_semesters[key]['finalDate'] or grade.timestamp > courses_semesters[key]['finalDate']:
+                courses_semesters[key]['finalDate'] = grade.timestamp
+
+        # Revisar reviews
         has_review_request = ReviewRequest.objects.filter(
             grade_assignment__student=request.user,
-            grade_assignment__course_id=course_id
+            grade_assignment__course_id=grade.course.id,
+            grade_assignment__semester=grade.semester
         ).exists()
-        
-        courses_data.append({
-            'id': course_id,
-            'name': f"{course_data['code']} - {course_data['title']}" if course_data['code'] else course_data['title'],
-            'period': course_data['latest_semester'],
-            'initialDate': course_data['initial_date'].isoformat() if course_data['initial_date'] else None,
-            'finalDate': course_data['final_date'].isoformat() if course_data['final_date'] else None,
-            'gradeState': latest_state,
-            'canRequestReview': latest_state == 'OPEN' and not has_review_request,
-            'hasRequestedReview': has_review_request  # ✅ INFORMACIÓN CORRECTA
-        })
-    
-    return Response(courses_data)
+        courses_semesters[key]['hasRequestedReview'] = has_review_request
+        courses_semesters[key]['canRequestReview'] = grade.state == 'OPEN' and not has_review_request
+
+    # Convertir fechas a string
+    result = []
+    for entry in courses_semesters.values():
+        entry['initialDate'] = entry['initialDate'].isoformat() if entry['initialDate'] else None
+        entry['finalDate'] = entry['finalDate'].isoformat() if entry['finalDate'] else None
+        result.append(entry)
+
+    return Response(result)

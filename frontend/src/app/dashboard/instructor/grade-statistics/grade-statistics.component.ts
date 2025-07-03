@@ -33,7 +33,14 @@ export class ViewGradesStatisticsComponent implements OnInit {
     labels: Array.from({ length: 11 }, (_, i) => i.toString()),
     datasets: [
       {
-        label: 'Τελικός Βαθμός',
+        label: 'Inital Submission',
+        data: [],
+        backgroundColor: '#007bff',
+        borderColor: '#007bff',
+        borderWidth: 1
+      },
+      {
+        label: 'Final Submission',
         data: [],
         backgroundColor: '#dc3545',
         borderColor: '#dc3545',
@@ -52,7 +59,7 @@ export class ViewGradesStatisticsComponent implements OnInit {
       },
       title: {
         display: true,
-        text: 'Κατανομή Βαθμών - Γενικό'
+        text: 'Course Grades Statistics',
       }
     },
     scales: {
@@ -71,7 +78,10 @@ export class ViewGradesStatisticsComponent implements OnInit {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: { 
+        display: true,
+        position: 'top'
+      },
       title: {
         display: true,
         font: { size: 12 }
@@ -86,6 +96,8 @@ export class ViewGradesStatisticsComponent implements OnInit {
       }
     }
   };
+
+  
   constructor(private api: ApiService, private router: Router) {}
   
   ngOnInit(): void {
@@ -106,14 +118,14 @@ export class ViewGradesStatisticsComponent implements OnInit {
         }));
       },
       error: () => {
-        alert('❌ Failed to load courses statistics.');
+        alert(' Failed to load courses statistics.');
       }
     });
   }
 
   toggleChart(course: CourseStats): void {
     if (!course.initialDate && !course.finalDate) {
-      alert('📊 No hay notas disponibles para este curso.');
+      alert('📊 No marks available for this course.');
       return;
     }
 
@@ -132,24 +144,31 @@ export class ViewGradesStatisticsComponent implements OnInit {
     this.loading = true;
     this.chartDataLoaded = false;
 
-    // Usar el período que esté disponible
     const semester = course.period || course.initialSemester || course.finalSemester;
     
     if (!semester) {
-      alert('No se pudo determinar el semestre para este curso.');
+      alert('Incorrect semester');
       this.loading = false;
       return;
     }
-    console.log(`🔍 Cargando estadísticas para curso ${course.id}, semestre: ${semester}`); // Debug
 
     this.api.getCourseGradeStatistics(course.id, semester).subscribe({
       next: (data) => {
-        console.log('Datos recibidos:', data); // Para debug
+        console.log('Datos recibidos:', data);
 
-        // Actualizar gráfico general
-        if (data.general_grades_plot_data && data.general_grades_plot_data.values) {
-          this.chartData.datasets[0].data = data.general_grades_plot_data.values;
-          this.chartData.datasets[0].label = `${course.name} - Notas Generales`;
+        // Actualizar gráfico general con ambos datasets
+        if (data.general_grades_plot_data) {
+          // Dataset inicial
+          if (data.general_grades_plot_data.initial?.values) {
+            this.chartData.datasets[0].data = data.general_grades_plot_data.initial.values;
+            this.chartData.datasets[0].label = `Initial Marks (${data.initial_student_count || 0} Students)`;
+          }
+          
+          // Dataset final
+          if (data.general_grades_plot_data.final?.values) {
+            this.chartData.datasets[1].data = data.general_grades_plot_data.final.values;
+            this.chartData.datasets[1].label = `Final Marks (${data.final_student_count || 0} Students)`;
+          }
         }
 
         // Actualizar gráficos de preguntas
@@ -157,15 +176,25 @@ export class ViewGradesStatisticsComponent implements OnInit {
         if (data.question_grades_plot_data) {
           Object.keys(data.question_grades_plot_data).forEach(questionNum => {
             const questionData = data.question_grades_plot_data[questionNum];
+            
             this.questionCharts[questionNum] = {
               labels: Array.from({ length: 11 }, (_, i) => i.toString()),
-              datasets: [{
-                label: questionNum,
-                data: questionData.values || [],
-                backgroundColor: this.getQuestionColor(questionNum),
-                borderColor: this.getQuestionColor(questionNum),
-                borderWidth: 1
-              }]
+              datasets: [
+                {
+                  label: 'Initial',
+                  data: questionData.initial?.values || [],
+                  backgroundColor: '#007bff',
+                  borderColor: '#007bff',
+                  borderWidth: 1
+                },
+                {
+                  label: 'Final',
+                  data: questionData.final?.values || [],
+                  backgroundColor: '#dc3545',
+                  borderColor: '#dc3545',
+                  borderWidth: 1
+                }
+              ]
             };
           });
         }
@@ -175,7 +204,7 @@ export class ViewGradesStatisticsComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading statistics:', error);
-        alert('Error al cargar las estadísticas del curso.');
+        alert('Error loading statistics.');
         this.loading = false;
       }
     });

@@ -117,7 +117,7 @@ export class ApiService {
       map(backendCourses => backendCourses.map(course => ({
         id: String(course.id),
         name: course.title,
-        period: course.period || 'N/A', // Fallback se period non è presente
+        period: course.period || '', // Fallback se period non è presente
         initialDate: course.initial_submission_date,
         finalDate: course.final_submission_date
       })))
@@ -129,7 +129,7 @@ export class ApiService {
       map(stats => stats.map(stat => ({
         id: String(stat.id),
         name: stat.name,
-        period: stat.period || 'N/A', // Fallback se period non è presente
+        period: stat.period || '', // Fallback se period non è presente
         initialDate: stat.initialDate,
         finalDate: stat.finalDate,
         initialSemester: stat.initialSemester,
@@ -224,7 +224,7 @@ export class ApiService {
       map(backendCourses => backendCourses.map(course => ({
         id: String(course.id),
         name: course.name, 
-        period: course.period || 'N/A',
+        period: course.period || '',
         initialDate: course.initialDate,
         finalDate: course.finalDate,
         gradeState: course.gradeState || 'CLOSED', 

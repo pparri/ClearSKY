@@ -84,4 +84,27 @@
     margin-bottom: 1rem;
     color: #333;
   }
+
+  .question-canvas {
+    height: 220px !important;
+    max-width: 300px;
+    min-width: 200px;
+  }
+
+
+
+  .general-chart-container {
+    height: 320px;
+    max-width: 900px;
+    margin: 0 auto 2rem auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .general-chart-container canvas {
+    height: 100% !important;
+    width: 100% !important;
+    max-height: 320px;
+  }
 }

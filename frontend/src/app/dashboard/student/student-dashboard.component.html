@@ -28,22 +28,37 @@
             <button class="btn-small" (click)="selectCourse(c)">
               {{ selectedCourse === c ? 'Hide Stats' : 'Show Stats' }}
             </button>
+            <ng-container *ngIf="selectedCourse === c && c.semesters && c.semesters.length > 1">
+              <select [(ngModel)]="selectedSemester" (change)="selectCourse(c, selectedSemester || undefined)">                
+                <option *ngFor="let s of c.semesters" [value]="s">{{ s }}</option>
+              </select>
+            </ng-container>
           </td>
         </tr>
         <tr *ngIf="selectedCourse === c">
           <td colspan="5">
             <div class="chart-card">
-              <h3>{{ selectedCourse.name }} – Statistics</h3>
-              <canvas baseChart
-                      [data]="barChartData"
-                      [options]="barChartOptions"
-                      [type]="barChartType">
-              </canvas>
+              <h3>{{ c.name }} – Statistics</h3>
+              <div class="general-chart-container">
+                <canvas baseChart
+                        [type]="barChartType"
+                        [data]="barChartData"
+                        [options]="barChartOptions">
+                </canvas>
+              </div>
+              <div *ngIf="questionCharts && (questionCharts | keyvalue).length > 0">
+                <h4>Marks for question</h4>
+                <div style="display: flex; flex-wrap: wrap; gap: 2rem;">
+                  <div *ngFor="let q of (questionCharts | keyvalue)">
+                    <h5>{{ q.key }}</h5>
+                    <div style="height: 220px; width: 100%; max-width: 300px;">
+                      <canvas baseChart
+                              [type]="barChartType"
+                              [data]="q.value"
+                              [options]="questionChartOptions"
+                              class="question-canvas"></canvas>
+                    </div>
+                  </div>
+              </div>
             </div>
-          </td>
-        </tr>
-      </ng-container>
-    </tbody>
-  </table>
-</div>
 
